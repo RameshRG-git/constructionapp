@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: constructionapp-backend
+Version: 0.1.0
+Summary: Flask backend for construction management
+Requires-Python: >=3.11
+Requires-Dist: Flask>=3.0
+Requires-Dist: Flask-SQLAlchemy>=3.1
+Requires-Dist: Flask-Migrate>=4.0
+Requires-Dist: psycopg[binary]>=3.1
+Requires-Dist: python-dotenv>=1.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=5.0; extra == "dev"
