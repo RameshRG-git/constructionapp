@@ -16,3 +16,15 @@ class BudgetRecord(db.Model):
     budget_status = db.Column(db.Enum(BudgetStatus), nullable=False, default=BudgetStatus.UNDER_BUDGET)
     recorded_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "category_name": self.category_name,
+            "planned_amount": float(self.planned_amount or 0),
+            "actual_amount": float(self.actual_amount or 0),
+            "remaining_amount": float(self.remaining_amount or 0),
+            "budget_status": self.budget_status.value if self.budget_status else None,
+            "recorded_at": self.recorded_at.isoformat() if self.recorded_at else None,
+        }

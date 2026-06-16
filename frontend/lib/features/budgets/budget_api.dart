@@ -5,6 +5,24 @@ class BudgetApi {
 
   final ApiClient client;
 
-  Future<Map<String, dynamic>> listBudgets(int projectId) =>
-      client.getJson('/api/v1/projects/$projectId/budgets');
+  Future<Map<String, dynamic>> listBudgets(
+    int projectId, {
+    String? status,
+    String? sortBy,
+    String? sortOrder,
+  }) {
+    final query = <String, String>{
+      if (status != null && status.isNotEmpty) 'budget_status': status,
+      if (sortBy != null && sortBy.isNotEmpty) 'sort_by': sortBy,
+      if (sortOrder != null && sortOrder.isNotEmpty) 'sort_order': sortOrder,
+    };
+
+    return client.getJson('/api/v1/projects/$projectId/budgets', query: query);
+  }
+
+  Future<Map<String, dynamic>> createBudget(int projectId, Map<String, dynamic> payload) =>
+      client.postJson('/api/v1/projects/$projectId/budgets', payload);
+
+  Future<Map<String, dynamic>> updateBudget(int budgetId, Map<String, dynamic> payload) =>
+      client.patchJson('/api/v1/budgets/$budgetId', payload);
 }

@@ -8,22 +8,58 @@ class ApiClient {
   final String baseUrl;
   final http.Client _client;
 
-  Future<Map<String, dynamic>> getJson(String path) async {
-    final response = await _client.get(Uri.parse('$baseUrl$path'));
-    return _decodeJson(response.body);
+  Future<Map<String, dynamic>> getJson(String path, {Map<String, String>? query}) async {
+    final response = await _client.get(_buildUri(path, query));
+    return _decodeJsonMap(response);
   }
 
   Future<Map<String, dynamic>> postJson(String path, Map<String, dynamic> payload) async {
     final response = await _client.post(
-      Uri.parse('$baseUrl$path'),
+      _buildUri(path),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(payload),
     );
-    return _decodeJson(response.body);
+    return _decodeJsonMap(response);
   }
 
-  Map<String, dynamic> _decodeJson(String body) {
-    final decoded = jsonDecode(body);
+  Future<Map<String, dynamic>> patchJson(String path, Map<String, dynamic> payload) async {
+    final response = await _client.patch(
+      _buildUri(path),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(payload),
+    );
+    return _decodeJsonMap(response);
+  }
+
+  Uri _buildUri(String path, [Map<String, String>? query]) {
+    final cleanedBase = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    final cleanedPath = path.startsWith('/') ? path : '/$path';
+    final uri = Uri.parse('$cleanedBase$cleanedPath');
+    if (query == null || query.isEmpty) {
+      return uri;
+    }
+    return uri.replace(queryParameters: {
+      ...uri.queryParameters,
+      ...query,
+    });
+  }
+
+  Map<String, dynamic> _decodeJsonMap(http.Response response) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw ApiException(response.statusCode, response.body);
+    }
+
+    final decoded = jsonDecode(response.body);
     return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
   }
+}
+
+class ApiException implements Exception {
+  ApiException(this.statusCode, this.body);
+
+  final int statusCode;
+  final String body;
+
+  @override
+  String toString() => 'API request failed ($statusCode): $body';
 }

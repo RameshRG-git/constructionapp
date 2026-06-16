@@ -8,6 +8,7 @@ from .api.projects import projects_bp
 from .api.workloads import workloads_bp
 from .config import DevelopmentConfig
 from .extensions import init_extensions
+from .extensions.database import db
 from .extensions.logging import configure_logging
 
 
@@ -21,9 +22,12 @@ def create_app(config_object=DevelopmentConfig):
 
     app.register_blueprint(projects_bp, url_prefix="/api/v1/projects")
     app.register_blueprint(project_summary_bp, url_prefix="/api/v1")
-    app.register_blueprint(inventory_bp, url_prefix="/api/v1/inventory")
-    app.register_blueprint(workloads_bp, url_prefix="/api/v1/workloads")
-    app.register_blueprint(budgets_bp, url_prefix="/api/v1/budgets")
+    app.register_blueprint(inventory_bp, url_prefix="/api/v1")
+    app.register_blueprint(workloads_bp, url_prefix="/api/v1")
+    app.register_blueprint(budgets_bp, url_prefix="/api/v1")
+
+    with app.app_context():
+        db.create_all()
 
     @app.get("/api/v1/health")
     def health_check():

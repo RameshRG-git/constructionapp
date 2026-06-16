@@ -19,3 +19,17 @@ class WorkAssignment(db.Model):
     estimated_hours = db.Column(db.Numeric(8, 2), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "assignee_type": self.assignee_type,
+            "assignee_name": self.assignee_name,
+            "title": self.title,
+            "description": self.description,
+            "priority": self.priority,
+            "status": self.status.value if self.status else None,
+            "due_date": self.due_date.isoformat() if self.due_date else None,
+            "estimated_hours": float(self.estimated_hours or 0),
+        }
