@@ -9,6 +9,7 @@ class BaseConfig:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JSON_SORT_KEYS = False
+    DEFAULT_TENANT = os.getenv("DEFAULT_TENANT", "kaniskahomes")
 
 
 class DevelopmentConfig(BaseConfig):

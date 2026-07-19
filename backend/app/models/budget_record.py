@@ -8,7 +8,8 @@ class BudgetRecord(db.Model):
     __tablename__ = "budget_records"
 
     id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    tenant_name = db.Column(db.String(120), nullable=False, index=True)
+    site_id = db.Column(db.Integer, db.ForeignKey("sites.id"), nullable=False)
     category_name = db.Column(db.String(255), nullable=True)
     planned_amount = db.Column(db.Numeric(14, 2), nullable=False, default=0)
     actual_amount = db.Column(db.Numeric(14, 2), nullable=False, default=0)
@@ -20,7 +21,8 @@ class BudgetRecord(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
-            "project_id": self.project_id,
+            "tenant_name": self.tenant_name,
+            "site_id": self.site_id,
             "category_name": self.category_name,
             "planned_amount": float(self.planned_amount or 0),
             "actual_amount": float(self.actual_amount or 0),

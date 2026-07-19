@@ -9,6 +9,7 @@ class InventoryService:
         ensure_non_negative(abs(quantity_delta), "quantity_delta")
         item.current_quantity = (item.current_quantity or 0) + quantity_delta
         transaction = InventoryTransaction(
+            tenant_name=item.tenant_name,
             inventory_item_id=item.id,
             transaction_type=transaction_type,
             quantity_delta=quantity_delta,

@@ -5,14 +5,16 @@ from ..extensions.database import db
 from ..models.budget_record import BudgetRecord
 from ..services.budget_service import BudgetService
 from ..services.domain_rules import BudgetStatus
+from ..services.tenancy import get_request_tenant_name
 
 
 budgets_bp = Blueprint("budgets", __name__)
 
 
-@budgets_bp.get("/projects/<int:project_id>/budgets")
-def list_budgets(project_id):
-    query = BudgetRecord.query.filter(BudgetRecord.project_id == project_id)
+@budgets_bp.get("/sites/<int:site_id>/budgets")
+def list_budgets(site_id):
+    tenant_name = get_request_tenant_name()
+    query = BudgetRecord.query.filter(BudgetRecord.site_id == site_id, BudgetRecord.tenant_name == tenant_name)
     status = request.args.get("budget_status")
     sort_by = request.args.get("sort_by", "recorded_at")
     sort_order = request.args.get("sort_order", "desc")
@@ -45,8 +47,9 @@ def list_budgets(project_id):
     )
 
 
-@budgets_bp.post("/projects/<int:project_id>/budgets")
-def create_budget_record(project_id):
+@budgets_bp.post("/sites/<int:site_id>/budgets")
+def create_budget_record(site_id):
+    tenant_name = get_request_tenant_name()
     payload = request.get_json(force=True)
     planned_amount = payload.get("planned_amount", 0)
     actual_amount = payload.get("actual_amount", 0)
@@ -60,7 +63,8 @@ def create_budget_record(project_id):
         budget_status = BudgetStatus.UNDER_BUDGET
 
     record = BudgetService.create_budget_record(
-        project_id=project_id,
+        tenant_name=tenant_name,
+        site_id=site_id,
         category_name=payload.get("category_name"),
         planned_amount=planned_amount,
         actual_amount=actual_amount,
@@ -72,8 +76,12 @@ def create_budget_record(project_id):
 
 @budgets_bp.patch("/budgets/<int:budget_id>")
 def update_budget_record(budget_id):
+    tenant_name = get_request_tenant_name()
     payload = request.get_json(force=True)
-    record = BudgetRecord.query.get_or_404(budget_id)
+    record = BudgetRecord.query.filter(
+        BudgetRecord.id == budget_id,
+        BudgetRecord.tenant_name == tenant_name,
+    ).first_or_404()
 
     for key in ["category_name", "planned_amount", "actual_amount", "remaining_amount"]:
         if key in payload:

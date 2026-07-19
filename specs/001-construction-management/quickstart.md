@@ -33,7 +33,7 @@ pytest
 ## Frontend
 1. Install Flutter dependencies.
 2. Launch the Flutter web client in Chrome or another supported browser.
-3. Verify project dashboards, inventory summaries, workload views, and budget charts load correctly.
+3. Verify site dashboards, inventory summaries, workload views, and budget charts load correctly.
 
 Example commands once the scaffold exists:
 ```bash
@@ -45,7 +45,7 @@ flutter test
 
 ## Reporting Views
 - Dashboard and reporting pages consume aggregated API data.
-- Chart.js renders project health, inventory risk, workload spread, and budget variance charts.
+- Chart.js renders site health, inventory risk, workload spread, and budget variance charts.
 
 ## CI/CD
 - GitLab CI should run backend tests, frontend tests, and build checks on every merge request.

@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class ProjectStatus(str, Enum):
+class SiteStatus(str, Enum):
     PLANNED = "planned"
     ACTIVE = "active"
     ON_HOLD = "on_hold"

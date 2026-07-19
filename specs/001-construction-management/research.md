@@ -9,7 +9,7 @@
 ## Decision 2: Frontend Framework
 - Decision: Use Flutter for the browser client.
 - Rationale: The user explicitly requested Flutter, and Flutter web supports a shared UI layer for the
-  project management, inventory, workload, and budget flows.
+  site management, inventory, workload, and budget flows.
 - Alternatives considered: React, Vue, native mobile apps.
 
 ## Decision 3: Charting Approach
@@ -20,7 +20,7 @@
 
 ## Decision 4: Persistence Model
 - Decision: Use PostgreSQL as the single system of record.
-- Rationale: The problem is relational by nature, with projects, inventory, assignments, and budgets
+- Rationale: The problem is relational by nature, with sites, inventory, assignments, and budgets
   sharing transactional relationships and reporting needs.
 - Alternatives considered: SQLite, NoSQL document storage.
 

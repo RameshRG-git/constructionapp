@@ -8,7 +8,8 @@ class WorkAssignment(db.Model):
     __tablename__ = "work_assignments"
 
     id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    tenant_name = db.Column(db.String(120), nullable=False, index=True)
+    site_id = db.Column(db.Integer, db.ForeignKey("sites.id"), nullable=False)
     assignee_type = db.Column(db.String(40), nullable=False)
     assignee_name = db.Column(db.String(255), nullable=False)
     title = db.Column(db.String(255), nullable=False)
@@ -23,7 +24,8 @@ class WorkAssignment(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
-            "project_id": self.project_id,
+            "tenant_name": self.tenant_name,
+            "site_id": self.site_id,
             "assignee_type": self.assignee_type,
             "assignee_name": self.assignee_name,
             "title": self.title,

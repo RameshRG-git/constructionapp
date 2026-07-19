@@ -4,10 +4,10 @@ from flask import abort
 
 
 ROLE_PERMISSIONS = {
-    "project_management": {"projects", "inventory", "workloads", "budgets"},
-    "site_operations": {"projects", "inventory", "workloads"},
+    "project_management": {"sites", "inventory", "workloads", "budgets"},
+    "site_operations": {"sites", "inventory", "workloads"},
     "warehouse_control": {"inventory"},
-    "finance_review": {"projects", "budgets"},
+    "finance_review": {"sites", "budgets"},
 }
 
 

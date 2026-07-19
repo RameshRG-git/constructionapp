@@ -6,15 +6,17 @@ from .response import created, ok
 from ..extensions.database import db
 from ..models.work_assignment import WorkAssignment
 from ..services.domain_rules import WorkStatus
+from ..services.tenancy import get_request_tenant_name
 from ..services.workload_service import WorkloadService
 
 
 workloads_bp = Blueprint("workloads", __name__)
 
 
-@workloads_bp.get("/projects/<int:project_id>/assignments")
-def list_workloads(project_id):
-    query = WorkAssignment.query.filter(WorkAssignment.project_id == project_id)
+@workloads_bp.get("/sites/<int:site_id>/assignments")
+def list_workloads(site_id):
+    tenant_name = get_request_tenant_name()
+    query = WorkAssignment.query.filter(WorkAssignment.site_id == site_id, WorkAssignment.tenant_name == tenant_name)
     status = request.args.get("status")
     assignee = request.args.get("assignee")
     sort_by = request.args.get("sort_by", "due_date")
@@ -37,11 +39,13 @@ def list_workloads(project_id):
     return ok({"items": [assignment.to_dict() for assignment in items]})
 
 
-@workloads_bp.post("/projects/<int:project_id>/assignments")
-def create_workload(project_id):
+@workloads_bp.post("/sites/<int:site_id>/assignments")
+def create_workload(site_id):
+    tenant_name = get_request_tenant_name()
     payload = request.get_json(force=True)
     assignment = WorkloadService.create_assignment(
-        project_id=project_id,
+        tenant_name=tenant_name,
+        site_id=site_id,
         assignee_type=payload["assignee_type"],
         assignee_name=payload["assignee_name"],
         title=payload["title"],
@@ -56,8 +60,12 @@ def create_workload(project_id):
 
 @workloads_bp.patch("/assignments/<int:assignment_id>")
 def update_workload(assignment_id):
+    tenant_name = get_request_tenant_name()
     payload = request.get_json(force=True)
-    assignment = WorkAssignment.query.get_or_404(assignment_id)
+    assignment = WorkAssignment.query.filter(
+        WorkAssignment.id == assignment_id,
+        WorkAssignment.tenant_name == tenant_name,
+    ).first_or_404()
 
     for key in ["assignee_type", "assignee_name", "title", "description", "priority"]:
         if key in payload:

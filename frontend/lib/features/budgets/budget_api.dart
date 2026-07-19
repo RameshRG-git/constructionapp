@@ -6,7 +6,7 @@ class BudgetApi {
   final ApiClient client;
 
   Future<Map<String, dynamic>> listBudgets(
-    int projectId, {
+    int siteId, {
     String? status,
     String? sortBy,
     String? sortOrder,
@@ -17,11 +17,11 @@ class BudgetApi {
       if (sortOrder != null && sortOrder.isNotEmpty) 'sort_order': sortOrder,
     };
 
-    return client.getJson('/api/v1/projects/$projectId/budgets', query: query);
+    return client.getJson('/api/v1/sites/$siteId/budgets', query: query);
   }
 
-  Future<Map<String, dynamic>> createBudget(int projectId, Map<String, dynamic> payload) =>
-      client.postJson('/api/v1/projects/$projectId/budgets', payload);
+  Future<Map<String, dynamic>> createBudget(int siteId, Map<String, dynamic> payload) =>
+      client.postJson('/api/v1/sites/$siteId/budgets', payload);
 
   Future<Map<String, dynamic>> updateBudget(int budgetId, Map<String, dynamic> payload) =>
       client.patchJson('/api/v1/budgets/$budgetId', payload);

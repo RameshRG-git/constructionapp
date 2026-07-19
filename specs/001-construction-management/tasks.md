@@ -16,7 +16,7 @@
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Project initialization and basic structure
+**Purpose**: Site initialization and basic structure
 
 - [x] T001 Create the backend application package structure in backend/app/, backend/app/api/, backend/app/models/, backend/app/services/, and backend/app/extensions/
 - [x] T002 Create the Flutter frontend package structure in frontend/lib/app/, frontend/lib/features/, frontend/lib/shared/, and frontend/web/
@@ -41,22 +41,22 @@
 
 ---
 
-## Phase 3: User Story 1 - Project Oversight (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - Site Oversight (Priority: P1) 🎯 MVP
 
-**Goal**: Let project managers create, view, update, search, and close construction projects with a combined project summary.
+**Goal**: Let site managers create, view, update, search, and close construction sites with a combined site summary.
 
-**Independent Test**: A manager can create a project, update its status or dates, open the project summary, and see the saved changes reflected immediately.
+**Independent Test**: A manager can create a site, update its status or dates, open the site summary, and see the saved changes reflected immediately.
 
 ### Implementation for User Story 1
 
-- [x] T010 [P] [US1] Create the Project model and status rules in backend/app/models/project.py
-- [x] T011 [P] [US1] Create the project repository and service layer in backend/app/services/project_service.py
-- [x] T012 [US1] Implement project CRUD and close endpoints in backend/app/api/projects.py
-- [x] T013 [US1] Implement the project summary aggregation endpoint in backend/app/api/project_summary.py
-- [x] T014 [P] [US1] Build the Flutter project list and project detail screens in frontend/lib/features/projects/
-- [x] T015 [US1] Build the Flutter project summary dashboard view in frontend/lib/features/dashboard/
-- [x] T016 [US1] Wire the project screens to the API client in frontend/lib/features/projects/project_api.dart and frontend/lib/features/dashboard/dashboard_api.dart
-- [x] T017 [US1] Add project search and status filtering support in backend/app/api/projects.py and frontend/lib/features/projects/
+- [x] T010 [P] [US1] Create the Site model and status rules in backend/app/models/site.py
+- [x] T011 [P] [US1] Create the site repository and service layer in backend/app/services/site_service.py
+- [x] T012 [US1] Implement site CRUD and close endpoints in backend/app/api/sites.py
+- [x] T013 [US1] Implement the site summary aggregation endpoint in backend/app/api/site_summary.py
+- [x] T014 [P] [US1] Build the Flutter site list and site detail screens in frontend/lib/features/sites/
+- [x] T015 [US1] Build the Flutter site summary dashboard view in frontend/lib/features/dashboard/
+- [x] T016 [US1] Wire the site screens to the API client in frontend/lib/features/sites/site_api.dart and frontend/lib/features/dashboard/dashboard_api.dart
+- [x] T017 [US1] Add site search and status filtering support in backend/app/api/sites.py and frontend/lib/features/sites/
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -66,14 +66,14 @@
 
 **Goal**: Let site and warehouse users track inventory items, adjust stock, and identify low-stock materials.
 
-**Independent Test**: A user can add an inventory item, post received or issued stock changes, and view low-stock warnings in the project inventory view.
+**Independent Test**: A user can add an inventory item, post received or issued stock changes, and view low-stock warnings in the site inventory view.
 
 ### Implementation for User Story 2
 
 - [x] T018 [P] [US2] Create the InventoryItem and InventoryTransaction models in backend/app/models/inventory.py
 - [x] T019 [P] [US2] Create the inventory service layer and stock adjustment rules in backend/app/services/inventory_service.py
 - [x] T020 [US2] Implement inventory item and transaction endpoints in backend/app/api/inventory.py
-- [x] T021 [US2] Extend the project summary aggregation to include low-stock counts and shortage amounts in backend/app/api/project_summary.py
+- [x] T021 [US2] Extend the site summary aggregation to include low-stock counts and shortage amounts in backend/app/api/site_summary.py
 - [x] T022 [P] [US2] Build the Flutter inventory screens for item list, item detail, and stock adjustment in frontend/lib/features/inventory/
 - [x] T023 [US2] Add inventory low-stock indicators and summary cards in frontend/lib/features/dashboard/
 - [x] T024 [US2] Wire the inventory screens to the API client in frontend/lib/features/inventory/inventory_api.dart
@@ -84,9 +84,9 @@
 
 ## Phase 5: User Story 3 - Workload and Budget Tracking (Priority: P3)
 
-**Goal**: Let project coordinators assign work, view team workload, and track budget performance against plan.
+**Goal**: Let site coordinators assign work, view team workload, and track budget performance against plan.
 
-**Independent Test**: A coordinator can create an assignment, review workload distribution, update a budget record, and see the resulting budget variance in the project summary.
+**Independent Test**: A coordinator can create an assignment, review workload distribution, update a budget record, and see the resulting budget variance in the site summary.
 
 ### Implementation for User Story 3
 
@@ -95,7 +95,7 @@
 - [x] T027 [P] [US3] Create the workload and budget service layers in backend/app/services/workload_service.py and backend/app/services/budget_service.py
 - [x] T028 [US3] Implement workload assignment endpoints in backend/app/api/workloads.py
 - [x] T029 [US3] Implement budget tracking endpoints in backend/app/api/budgets.py
-- [x] T030 [US3] Extend the project summary aggregation to include workload and budget metrics in backend/app/api/project_summary.py
+- [x] T030 [US3] Extend the site summary aggregation to include workload and budget metrics in backend/app/api/site_summary.py
 - [x] T031 [P] [US3] Build the Flutter workload screens in frontend/lib/features/workloads/
 - [x] T032 [P] [US3] Build the Flutter budget screens and reporting charts in frontend/lib/features/budgets/
 - [x] T033 [US3] Integrate Chart.js-driven reporting views with summary data in frontend/lib/features/dashboard/
@@ -131,8 +131,8 @@
 ### User Story Dependencies
 
 - **User Story 1 (P1)**: Can start after Foundational (Phase 2) - No dependencies on other stories
-- **User Story 2 (P2)**: Can start after Foundational (Phase 2) - Depends on the shared project foundation but remains independently testable
-- **User Story 3 (P3)**: Can start after Foundational (Phase 2) - Depends on the shared project foundation but remains independently testable
+- **User Story 2 (P2)**: Can start after Foundational (Phase 2) - Depends on the shared site foundation but remains independently testable
+- **User Story 3 (P3)**: Can start after Foundational (Phase 2) - Depends on the shared site foundation but remains independently testable
 
 ### Within Each User Story
 
@@ -155,8 +155,8 @@
 
 ```bash
 # Launch backend and frontend work for User Story 1 together:
-Task: "Create the Project model and status rules in backend/app/models/project.py"
-Task: "Build the Flutter project list and project detail screens in frontend/lib/features/projects/"
+Task: "Create the Site model and status rules in backend/app/models/site.py"
+Task: "Build the Flutter site list and site detail screens in frontend/lib/features/sites/"
 ```
 
 ---

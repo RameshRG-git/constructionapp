@@ -79,19 +79,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               }
 
               final totals = (snapshot.data?['totals'] as Map<String, dynamic>?) ?? <String, dynamic>{};
-              final projects = (totals['projects'] as num?)?.toDouble() ?? 0;
+              final sites = (totals['sites'] as num?)?.toDouble() ?? 0;
               final alerts = (totals['inventory_alerts'] as num?)?.toDouble() ?? 0;
               final workloads = (totals['open_workloads'] as num?)?.toDouble() ?? 0;
               final variance = (totals['budget_variance'] as num?)?.toDouble() ?? 0;
 
               final cards = <_MetricCardData>[
                 _MetricCardData(
-                  title: 'Projects',
-                  valueLabel: projects.toStringAsFixed(0),
-                  subtitle: 'Total tracked projects',
+                  title: 'Sites',
+                  valueLabel: sites.toStringAsFixed(0),
+                  subtitle: 'Total tracked sites',
                   trendLabel: '+12.0%',
                   positiveTrend: true,
-                  points: _seriesFromValue(projects),
+                  points: _seriesFromValue(sites),
                 ),
                 _MetricCardData(
                   title: 'Inventory Alerts',

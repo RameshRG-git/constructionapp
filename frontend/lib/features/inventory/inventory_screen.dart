@@ -10,9 +10,9 @@ class InventoryScreen extends StatefulWidget {
 }
 
 class _InventoryScreenState extends State<InventoryScreen> {
-  List<Map<String, dynamic>> _projects = <Map<String, dynamic>>[];
+  List<Map<String, dynamic>> _sites = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
-  int? _projectId;
+  int? _siteId;
   String _category = '';
   bool? _lowStock;
   String _sortBy = 'item_name';
@@ -23,23 +23,23 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   void initState() {
     super.initState();
-    _loadProjects();
+    _loadSites();
   }
 
-  Future<void> _loadProjects() async {
-    final response = await ApiRegistry.projects.listProjects(sortBy: 'name', sortOrder: 'asc');
-    final projects = (response['items'] as List<dynamic>? ?? <dynamic>[])
+  Future<void> _loadSites() async {
+    final response = await ApiRegistry.sites.listSites(sortBy: 'name', sortOrder: 'asc');
+    final sites = (response['items'] as List<dynamic>? ?? <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .toList();
     setState(() {
-      _projects = projects;
-      _projectId = projects.isEmpty ? null : projects.first['id'] as int;
+      _sites = sites;
+      _siteId = sites.isEmpty ? null : sites.first['id'] as int;
     });
     await _loadInventory();
   }
 
   Future<void> _loadInventory() async {
-    if (_projectId == null) {
+    if (_siteId == null) {
       return;
     }
     setState(() {
@@ -47,8 +47,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
       _error = null;
     });
     try {
-      final response = await ApiRegistry.inventory.listProjectInventory(
-        _projectId!,
+      final response = await ApiRegistry.inventory.listSiteInventory(
+        _siteId!,
         category: _category,
         lowStock: _lowStock,
         sortBy: _sortBy,
@@ -72,7 +72,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Future<void> _showItemDialog({Map<String, dynamic>? existing}) async {
-    if (_projectId == null) {
+    if (_siteId == null) {
       return;
     }
 
@@ -98,10 +98,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(controller: itemNameController, decoration: const InputDecoration(labelText: 'Item Name')),
+                  const SizedBox(height: 16),
                   TextField(controller: categoryController, decoration: const InputDecoration(labelText: 'Category')),
+                  const SizedBox(height: 16),
                   TextField(controller: unitController, decoration: const InputDecoration(labelText: 'Unit of Measure')),
+                  const SizedBox(height: 16),
                   TextField(controller: currentController, decoration: const InputDecoration(labelText: 'Current Quantity')),
+                  const SizedBox(height: 16),
                   TextField(controller: minimumController, decoration: const InputDecoration(labelText: 'Minimum Quantity')),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: storageController,
                     decoration: const InputDecoration(labelText: 'Storage Location'),
@@ -123,7 +128,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   'storage_location': storageController.text.trim(),
                 };
                 if (existing == null) {
-                  await ApiRegistry.inventory.createProjectInventory(_projectId!, payload);
+                  await ApiRegistry.inventory.createSiteInventory(_siteId!, payload);
                 } else {
                   await ApiRegistry.inventory.updateInventoryItem(existing['id'] as int, payload);
                 }
@@ -155,7 +160,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           children: [
             Expanded(child: Text('Inventory', style: theme.textTheme.headlineMedium)),
             FilledButton.icon(
-              onPressed: _projectId == null ? null : () => _showItemDialog(),
+              onPressed: _siteId == null ? null : () => _showItemDialog(),
               icon: const Icon(Icons.add),
               label: const Text('Add Item'),
             ),
@@ -171,22 +176,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
             SizedBox(
               width: 260,
               child: DropdownButtonFormField<int>(
-                value: _projectId,
-                items: _projects
+                value: _siteId,
+                items: _sites
                     .map(
-                      (project) => DropdownMenuItem<int>(
-                        value: project['id'] as int,
-                        child: Text(project['name']?.toString() ?? '-'),
+                      (site) => DropdownMenuItem<int>(
+                        value: site['id'] as int,
+                        child: Text(site['name']?.toString() ?? '-'),
                       ),
                     )
                     .toList(),
                 onChanged: (value) {
                   setState(() {
-                    _projectId = value;
+                    _siteId = value;
                   });
                   _loadInventory();
                 },
-                decoration: const InputDecoration(labelText: 'Project'),
+                decoration: const InputDecoration(labelText: 'Site'),
               ),
             ),
             SizedBox(

@@ -5,14 +5,16 @@ from ..extensions.database import db
 from ..models.inventory import InventoryItem
 from ..services.domain_rules import InventoryTransactionType
 from ..services.inventory_service import InventoryService
+from ..services.tenancy import get_request_tenant_name
 
 
 inventory_bp = Blueprint("inventory", __name__)
 
 
-@inventory_bp.get("/projects/<int:project_id>/inventory")
-def list_project_inventory(project_id):
-    query = InventoryItem.query.filter(InventoryItem.project_id == project_id)
+@inventory_bp.get("/sites/<int:site_id>/inventory")
+def list_site_inventory(site_id):
+    tenant_name = get_request_tenant_name()
+    query = InventoryItem.query.filter(InventoryItem.site_id == site_id, InventoryItem.tenant_name == tenant_name)
     category = request.args.get("category")
     low_stock = request.args.get("low_stock")
     sort_by = request.args.get("sort_by", "item_name")
@@ -42,11 +44,13 @@ def list_project_inventory(project_id):
     return ok({"items": [item.to_dict() for item in items]})
 
 
-@inventory_bp.post("/projects/<int:project_id>/inventory")
-def create_inventory_item(project_id):
+@inventory_bp.post("/sites/<int:site_id>/inventory")
+def create_inventory_item(site_id):
+    tenant_name = get_request_tenant_name()
     payload = request.get_json(force=True)
     item = InventoryItem(
-        project_id=project_id,
+        tenant_name=tenant_name,
+        site_id=site_id,
         item_name=payload["item_name"],
         category=payload["category"],
         unit_of_measure=payload["unit_of_measure"],
@@ -61,8 +65,9 @@ def create_inventory_item(project_id):
 
 @inventory_bp.patch("/inventory/<int:item_id>")
 def update_inventory_item(item_id):
+    tenant_name = get_request_tenant_name()
     payload = request.get_json(force=True)
-    item = InventoryItem.query.get_or_404(item_id)
+    item = InventoryItem.query.filter(InventoryItem.id == item_id, InventoryItem.tenant_name == tenant_name).first_or_404()
     for key in ["item_name", "category", "unit_of_measure", "storage_location"]:
         if key in payload:
             setattr(item, key, payload[key])
@@ -75,8 +80,9 @@ def update_inventory_item(item_id):
 
 @inventory_bp.post("/inventory/<int:item_id>/transactions")
 def adjust_stock(item_id):
+    tenant_name = get_request_tenant_name()
     payload = request.get_json(force=True)
-    item = InventoryItem.query.get_or_404(item_id)
+    item = InventoryItem.query.filter(InventoryItem.id == item_id, InventoryItem.tenant_name == tenant_name).first_or_404()
     updated_item, transaction = InventoryService.adjust_stock(
         item=item,
         quantity_delta=payload["quantity_delta"],

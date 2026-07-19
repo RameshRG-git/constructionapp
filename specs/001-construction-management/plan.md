@@ -9,7 +9,7 @@
 ## Summary
 
 Build a browser-based construction operations system with a Flask backend and a Flutter web
-frontend. The MVP covers project tracking, inventory control, work allocation, and budget
+frontend. The MVP covers site tracking, inventory control, work allocation, and budget
 monitoring, with Chart.js-based reporting views fed by API aggregation endpoints. Use PostgreSQL
 for persistence, PyTest for backend verification, and GitLab CI for automated checks.
 
@@ -27,15 +27,15 @@ frontend flows; smoke checks for dashboard/reporting views
 
 **Target Platform**: Web browser on desktop and mobile devices
 
-**Project Type**: Web application with separate backend API and frontend client
+**Site Type**: Web application with separate backend API and frontend client
 
 **Performance Goals**: Typical CRUD and summary responses should remain under 2 seconds for an
-active project workspace; dashboard charts should render without blocking core workflows
+active site workspace; dashboard charts should render without blocking core workflows
 
 **Constraints**: Browser-first delivery, role-based access control, secure server-side validation,
 and a simple two-tier architecture aligned with the constitution
 
-**Scale/Scope**: Single organization deployment with dozens of projects, hundreds of inventory
+**Scale/Scope**: Single organization deployment with dozens of sites, hundreds of inventory
 items, and ongoing work/budget updates across active sites
 
 ## Constitution Check
@@ -50,7 +50,7 @@ The constitution is satisfied:
 - Server-side validation and role-based access are planned for all mutating actions.
 - Logging, readable structure, and explicit API contracts support maintainability.
 
-## Project Structure
+## Site Structure
 
 ### Documentation (this feature)
 
@@ -83,7 +83,7 @@ frontend/
 │   ├── app/
 │   ├── features/
 │   │   ├── dashboard/
-│   │   ├── projects/
+│   │   ├── sites/
 │   │   ├── inventory/
 │   │   ├── workloads/
 │   │   └── budgets/

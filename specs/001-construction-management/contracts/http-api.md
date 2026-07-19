@@ -22,36 +22,36 @@ be authorized, validated server-side, and return actionable error responses.
 
 ## Endpoints
 
-### Projects
-- `GET /projects` - list projects with summary fields
-- `POST /projects` - create a project
-- `GET /projects/{project_id}` - fetch project detail and operational summary
-- `PATCH /projects/{project_id}` - update project metadata or status
-- `POST /projects/{project_id}/close` - close a project
+### Sites
+- `GET /sites` - list sites with summary fields
+- `POST /sites` - create a site
+- `GET /sites/{site_id}` - fetch site detail and operational summary
+- `PATCH /sites/{site_id}` - update site metadata or status
+- `POST /sites/{site_id}/close` - close a site
 
 ### Inventory
-- `GET /projects/{project_id}/inventory` - list tracked inventory items for a project
-- `POST /projects/{project_id}/inventory` - create a tracked inventory item
+- `GET /sites/{site_id}/inventory` - list tracked inventory items for a site
+- `POST /sites/{site_id}/inventory` - create a tracked inventory item
 - `PATCH /inventory/{item_id}` - update inventory item metadata or thresholds
 - `POST /inventory/{item_id}/transactions` - record a received, issued, or corrected stock change
 
 ### Workloads
-- `GET /projects/{project_id}/assignments` - list work assignments
-- `POST /projects/{project_id}/assignments` - create a work assignment
+- `GET /sites/{site_id}/assignments` - list work assignments
+- `POST /sites/{site_id}/assignments` - create a work assignment
 - `PATCH /assignments/{assignment_id}` - update assignment details and status
 
 ### Budgets
-- `GET /projects/{project_id}/budgets` - list budget records and summary
-- `POST /projects/{project_id}/budgets` - create a budget record
+- `GET /sites/{site_id}/budgets` - list budget records and summary
+- `POST /sites/{site_id}/budgets` - create a budget record
 - `PATCH /budgets/{budget_id}` - update planned or actual amounts
 
 ### Reporting
-- `GET /projects/{project_id}/summary` - return combined project health, inventory risk, workload,
+- `GET /sites/{site_id}/summary` - return combined site health, inventory risk, workload,
   and budget variance data for the dashboard
 - `GET /reports/overview` - return organization-wide operational summary data for charts
 
 ## Validation Expectations
-- Project creation requires name, site location, owner, planned start date, and planned end date.
+- Site creation requires name, site location, owner, planned start date, and planned end date.
 - Inventory transactions require a valid transaction type and a non-zero quantity delta.
 - Work assignments require assignee, title, due date, and status.
 - Budget records require non-negative planned and actual amounts.

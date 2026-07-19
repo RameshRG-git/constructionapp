@@ -7,16 +7,32 @@ class ApiClient {
 
   final String baseUrl;
   final http.Client _client;
+  String _tenantName = 'kaniskahomes';
+
+  String get tenantName => _tenantName;
+
+  void setTenantName(String tenantName) {
+    final cleaned = tenantName.trim().toLowerCase();
+    if (cleaned.isNotEmpty) {
+      _tenantName = cleaned;
+    }
+  }
 
   Future<Map<String, dynamic>> getJson(String path, {Map<String, String>? query}) async {
-    final response = await _client.get(_buildUri(path, query));
+    final response = await _client.get(
+      _buildUri(path, query),
+      headers: {'X-Tenant': _tenantName},
+    );
     return _decodeJsonMap(response);
   }
 
   Future<Map<String, dynamic>> postJson(String path, Map<String, dynamic> payload) async {
     final response = await _client.post(
       _buildUri(path),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Tenant': _tenantName,
+      },
       body: jsonEncode(payload),
     );
     return _decodeJsonMap(response);
@@ -25,7 +41,10 @@ class ApiClient {
   Future<Map<String, dynamic>> patchJson(String path, Map<String, dynamic> payload) async {
     final response = await _client.patch(
       _buildUri(path),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Tenant': _tenantName,
+      },
       body: jsonEncode(payload),
     );
     return _decodeJsonMap(response);

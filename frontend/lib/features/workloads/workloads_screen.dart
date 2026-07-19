@@ -10,9 +10,9 @@ class WorkloadsScreen extends StatefulWidget {
 }
 
 class _WorkloadsScreenState extends State<WorkloadsScreen> {
-  List<Map<String, dynamic>> _projects = <Map<String, dynamic>>[];
+  List<Map<String, dynamic>> _sites = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
-  int? _projectId;
+  int? _siteId;
   String _status = '';
   String _assignee = '';
   String _sortBy = 'due_date';
@@ -63,23 +63,23 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadProjects();
+    _loadSites();
   }
 
-  Future<void> _loadProjects() async {
-    final response = await ApiRegistry.projects.listProjects(sortBy: 'name', sortOrder: 'asc');
-    final projects = (response['items'] as List<dynamic>? ?? <dynamic>[])
+  Future<void> _loadSites() async {
+    final response = await ApiRegistry.sites.listSites(sortBy: 'name', sortOrder: 'asc');
+    final sites = (response['items'] as List<dynamic>? ?? <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .toList();
     setState(() {
-      _projects = projects;
-      _projectId = projects.isEmpty ? null : projects.first['id'] as int;
+      _sites = sites;
+      _siteId = sites.isEmpty ? null : sites.first['id'] as int;
     });
     await _loadWorkloads();
   }
 
   Future<void> _loadWorkloads() async {
-    if (_projectId == null) {
+    if (_siteId == null) {
       return;
     }
     setState(() {
@@ -88,7 +88,7 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
     });
     try {
       final response = await ApiRegistry.workloads.listWorkloads(
-        _projectId!,
+        _siteId!,
         status: _status,
         assignee: _assignee,
         sortBy: _sortBy,
@@ -112,7 +112,7 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
   }
 
   Future<void> _showAssignmentDialog({Map<String, dynamic>? existing}) async {
-    if (_projectId == null) {
+    if (_siteId == null) {
       return;
     }
     final rootContext = context;
@@ -145,19 +145,24 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
                     controller: assigneeTypeController,
                     decoration: const InputDecoration(labelText: 'Assignee Type'),
                   ),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: assigneeNameController,
                     decoration: const InputDecoration(labelText: 'Assignee Name'),
                   ),
+                  const SizedBox(height: 16),
                   TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Title')),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: descriptionController,
                     decoration: const InputDecoration(labelText: 'Description'),
                   ),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: priorityController,
                     decoration: const InputDecoration(labelText: 'Priority'),
                   ),
+                  const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: status,
                     items: const [
@@ -169,6 +174,7 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
                     onChanged: (value) => status = value ?? 'open',
                     decoration: const InputDecoration(labelText: 'Status'),
                   ),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: dueDateController,
                     readOnly: true,
@@ -189,6 +195,7 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
                       }
                     },
                   ),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: estimatedHoursController,
                     decoration: const InputDecoration(labelText: 'Estimated Hours'),
@@ -220,7 +227,7 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
                   'estimated_hours': double.tryParse(estimatedHoursController.text.trim()) ?? 0,
                 };
                 if (existing == null) {
-                  await ApiRegistry.workloads.createWorkload(_projectId!, payload);
+                  await ApiRegistry.workloads.createWorkload(_siteId!, payload);
                 } else {
                   await ApiRegistry.workloads.updateWorkload(existing['id'] as int, payload);
                 }
@@ -252,7 +259,7 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
           children: [
             Expanded(child: Text('Workloads', style: theme.textTheme.headlineMedium)),
             FilledButton.icon(
-              onPressed: _projectId == null ? null : () => _showAssignmentDialog(),
+              onPressed: _siteId == null ? null : () => _showAssignmentDialog(),
               icon: const Icon(Icons.add),
               label: const Text('Add Workload'),
             ),
@@ -268,22 +275,22 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
             SizedBox(
               width: 260,
               child: DropdownButtonFormField<int>(
-                value: _projectId,
-                items: _projects
+                value: _siteId,
+                items: _sites
                     .map(
-                      (project) => DropdownMenuItem<int>(
-                        value: project['id'] as int,
-                        child: Text(project['name']?.toString() ?? '-'),
+                      (site) => DropdownMenuItem<int>(
+                        value: site['id'] as int,
+                        child: Text(site['name']?.toString() ?? '-'),
                       ),
                     )
                     .toList(),
                 onChanged: (value) {
                   setState(() {
-                    _projectId = value;
+                    _siteId = value;
                   });
                   _loadWorkloads();
                 },
-                decoration: const InputDecoration(labelText: 'Project'),
+                decoration: const InputDecoration(labelText: 'Site'),
               ),
             ),
             SizedBox(

@@ -10,9 +10,9 @@ class BudgetsScreen extends StatefulWidget {
 }
 
 class _BudgetsScreenState extends State<BudgetsScreen> {
-  List<Map<String, dynamic>> _projects = <Map<String, dynamic>>[];
+  List<Map<String, dynamic>> _sites = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
-  int? _projectId;
+  int? _siteId;
   bool _isLoading = false;
   String? _error;
   double _plannedTotal = 0;
@@ -22,23 +22,23 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadProjects();
+    _loadSites();
   }
 
-  Future<void> _loadProjects() async {
-    final response = await ApiRegistry.projects.listProjects(sortBy: 'name', sortOrder: 'asc');
-    final projects = (response['items'] as List<dynamic>? ?? <dynamic>[])
+  Future<void> _loadSites() async {
+    final response = await ApiRegistry.sites.listSites(sortBy: 'name', sortOrder: 'asc');
+    final sites = (response['items'] as List<dynamic>? ?? <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .toList();
     setState(() {
-      _projects = projects;
-      _projectId = projects.isEmpty ? null : projects.first['id'] as int;
+      _sites = sites;
+      _siteId = sites.isEmpty ? null : sites.first['id'] as int;
     });
     await _loadBudgets();
   }
 
   Future<void> _loadBudgets() async {
-    if (_projectId == null) {
+    if (_siteId == null) {
       return;
     }
 
@@ -48,7 +48,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     });
 
     try {
-      final response = await ApiRegistry.budgets.listBudgets(_projectId!);
+      final response = await ApiRegistry.budgets.listBudgets(_siteId!);
       final items = (response['items'] as List<dynamic>? ?? <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .toList();
@@ -71,7 +71,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   }
 
   Future<void> _showBudgetDialog({Map<String, dynamic>? existing}) async {
-    if (_projectId == null) {
+    if (_siteId == null) {
       return;
     }
 
@@ -93,10 +93,12 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                   controller: categoryController,
                   decoration: const InputDecoration(labelText: 'Category Name'),
                 ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: plannedController,
                   decoration: const InputDecoration(labelText: 'Planned Amount'),
                 ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: actualController,
                   decoration: const InputDecoration(labelText: 'Actual Amount'),
@@ -114,7 +116,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                   'actual_amount': double.tryParse(actualController.text.trim()) ?? 0,
                 };
                 if (existing == null) {
-                  await ApiRegistry.budgets.createBudget(_projectId!, payload);
+                  await ApiRegistry.budgets.createBudget(_siteId!, payload);
                 } else {
                   await ApiRegistry.budgets.updateBudget(existing['id'] as int, payload);
                 }
@@ -146,7 +148,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
           children: [
             Expanded(child: Text('Budgets and Reporting', style: theme.textTheme.headlineMedium)),
             FilledButton.icon(
-              onPressed: _projectId == null ? null : () => _showBudgetDialog(),
+              onPressed: _siteId == null ? null : () => _showBudgetDialog(),
               icon: const Icon(Icons.add),
               label: const Text('Add Budget'),
             ),
@@ -158,22 +160,22 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
         SizedBox(
           width: 260,
           child: DropdownButtonFormField<int>(
-            value: _projectId,
-            items: _projects
+            value: _siteId,
+            items: _sites
                 .map(
-                  (project) => DropdownMenuItem<int>(
-                    value: project['id'] as int,
-                    child: Text(project['name']?.toString() ?? '-'),
+                  (site) => DropdownMenuItem<int>(
+                    value: site['id'] as int,
+                    child: Text(site['name']?.toString() ?? '-'),
                   ),
                 )
                 .toList(),
             onChanged: (value) {
               setState(() {
-                _projectId = value;
+                _siteId = value;
               });
               _loadBudgets();
             },
-            decoration: const InputDecoration(labelText: 'Project'),
+            decoration: const InputDecoration(labelText: 'Site'),
           ),
         ),
         const SizedBox(height: 12),

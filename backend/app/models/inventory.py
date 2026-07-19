@@ -8,7 +8,8 @@ class InventoryItem(db.Model):
     __tablename__ = "inventory_items"
 
     id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    tenant_name = db.Column(db.String(120), nullable=False, index=True)
+    site_id = db.Column(db.Integer, db.ForeignKey("sites.id"), nullable=False)
     item_name = db.Column(db.String(255), nullable=False)
     category = db.Column(db.String(120), nullable=False)
     unit_of_measure = db.Column(db.String(40), nullable=False)
@@ -21,7 +22,8 @@ class InventoryItem(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
-            "project_id": self.project_id,
+            "tenant_name": self.tenant_name,
+            "site_id": self.site_id,
             "item_name": self.item_name,
             "category": self.category,
             "unit_of_measure": self.unit_of_measure,
@@ -36,6 +38,7 @@ class InventoryTransaction(db.Model):
     __tablename__ = "inventory_transactions"
 
     id = db.Column(db.Integer, primary_key=True)
+    tenant_name = db.Column(db.String(120), nullable=False, index=True)
     inventory_item_id = db.Column(db.Integer, db.ForeignKey("inventory_items.id"), nullable=False)
     transaction_type = db.Column(db.Enum(InventoryTransactionType), nullable=False)
     quantity_delta = db.Column(db.Numeric(12, 2), nullable=False)
