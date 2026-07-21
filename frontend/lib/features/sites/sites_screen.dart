@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../shared/api_registry.dart';
+import '../../shared/workspace_scope.dart';
 
 class SitesScreen extends StatefulWidget {
   const SitesScreen({super.key});
@@ -12,11 +13,12 @@ class SitesScreen extends StatefulWidget {
 class _SitesScreenState extends State<SitesScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _statusFilter = '';
-  String _sortBy = 'created_at';
+  String _sortBy = 'name';
   String _sortOrder = 'desc';
   bool _isLoading = false;
   String? _error;
   List<Map<String, dynamic>> _sites = <Map<String, dynamic>>[];
+  bool _searchExpanded = false;
 
   String _formatDate(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
@@ -91,6 +93,27 @@ class _SitesScreenState extends State<SitesScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  String _statusLabel(String value) {
+    switch (value) {
+      case 'planned':
+        return 'Planned';
+      case 'active':
+        return 'Active';
+      case 'on_hold':
+        return 'On Hold';
+      case 'closed':
+        return 'Closed';
+      default:
+        return 'All';
+    }
+  }
+
+  void _enterWorkspace(Map<String, dynamic> site) {
+    final workspace = WorkspaceScope.of(context);
+    workspace.selectSite(site['id'] as int);
+    Navigator.of(context).pushReplacementNamed('/workspace');
   }
 
   Future<void> _showSiteDialog({Map<String, dynamic>? existing}) async {
@@ -208,13 +231,31 @@ class _SitesScreenState extends State<SitesScreen> {
                   return;
                 }
 
+                    final workspace = WorkspaceScope.of(context);
                 if (endController.text.trim().isNotEmpty && plannedEndDate == null) {
                   ScaffoldMessenger.of(rootContext).showSnackBar(
                     const SnackBar(content: Text('Planned End Date must be in DD/MM/YYYY format.')),
                   );
                   return;
                 }
-
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Sites', style: theme.textTheme.headlineMedium),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Pick a site once, then enter its workspace to manage inventory, workloads, and budgets in one place.',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => setState(() => _searchExpanded = !_searchExpanded),
+                              icon: Icon(_searchExpanded ? Icons.search_off_rounded : Icons.search_rounded),
+                              tooltip: _searchExpanded ? 'Hide search' : 'Search sites',
+                            ),
                 final payload = <String, dynamic>{
                   'name': name,
                   'site_location': siteLocation,
@@ -222,9 +263,88 @@ class _SitesScreenState extends State<SitesScreen> {
                   'planned_start_date': plannedStartDate,
                   'status': status,
                   if (plannedEndDate != null) 'planned_end_date': plannedEndDate,
-                };
-                if (existing == null) {
-                  await ApiRegistry.sites.createSite(payload);
+                        const SizedBox(height: 14),
+                        if (_searchExpanded)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: TextField(
+                              controller: _searchController,
+                              onSubmitted: (_) => _loadSites(),
+                              decoration: InputDecoration(
+                                labelText: 'Search by site, owner, or location',
+                                prefixIcon: const Icon(Icons.search),
+                                suffixIcon: IconButton(
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    _loadSites();
+                                  },
+                                  icon: const Icon(Icons.close_rounded),
+                                ),
+                              ),
+                            ),
+                          ),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            SegmentedButton<String>(
+                              segments: const [
+                                ButtonSegment(value: '', label: Text('All')),
+                                ButtonSegment(value: 'active', label: Text('Active')),
+                                ButtonSegment(value: 'planned', label: Text('Planned')),
+                                ButtonSegment(value: 'on_hold', label: Text('On Hold')),
+                                ButtonSegment(value: 'closed', label: Text('Closed')),
+                              ],
+                              selected: <String>{_statusFilter},
+                              onSelectionChanged: (selection) {
+                                setState(() => _statusFilter = selection.first);
+                                _loadSites();
+                              },
+                            ),
+                            SizedBox(
+                              width: 180,
+                              child: DropdownButtonFormField<String>(
+                                value: _sortBy,
+                                items: const [
+                                  DropdownMenuItem(value: 'name', child: Text('Sort: Name')),
+                                  DropdownMenuItem(value: 'created_at', child: Text('Sort: Created')),
+                                  DropdownMenuItem(value: 'planned_start_date', child: Text('Sort: Start Date')),
+                                  DropdownMenuItem(value: 'planned_end_date', child: Text('Sort: End Date')),
+                                ],
+                                onChanged: (value) {
+                                  setState(() => _sortBy = value ?? 'name');
+                                  _loadSites();
+                                },
+                                decoration: const InputDecoration(labelText: 'Sort'),
+                              ),
+                            ),
+                            Tooltip(
+                              message: _sortOrder == 'asc' ? 'Ascending' : 'Descending',
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  setState(() => _sortOrder = _sortOrder == 'asc' ? 'desc' : 'asc');
+                                  _loadSites();
+                                },
+                                icon: Icon(_sortOrder == 'asc' ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded),
+                                label: Text(_sortOrder == 'asc' ? 'A to Z' : 'Z to A'),
+                              ),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                setState(() {
+                                  _statusFilter = '';
+                                  _sortBy = 'name';
+                                  _sortOrder = 'desc';
+                                  _searchController.clear();
+                                });
+                                _loadSites();
+                              },
+                              icon: const Icon(Icons.restart_alt_rounded),
+                              label: const Text('Reset'),
+                            ),
+                          ],
+                        ),
                 } else {
                   await ApiRegistry.sites.updateSite(existing['id'] as int, payload);
                 }
@@ -340,11 +460,19 @@ class _SitesScreenState extends State<SitesScreen> {
                                 subtitle: Text(
                                   '${site['site_location'] ?? '-'} • Owner: ${site['owner_name'] ?? '-'}',
                                 ),
+                                onTap: () {
+                                  workspace.selectSite(site['id'] as int);
+                                },
                                 trailing: Wrap(
                                   spacing: 8,
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
-                                    Chip(label: Text(site['status']?.toString() ?? '-')),
+                                    Chip(label: Text(_statusLabel(site['status']?.toString() ?? ''))),
+                                    OutlinedButton.icon(
+                                      onPressed: () => _enterWorkspace(site),
+                                      icon: const Icon(Icons.launch_rounded),
+                                      label: const Text('Enter Workspace'),
+                                    ),
                                     IconButton(
                                       icon: const Icon(Icons.edit_outlined),
                                       onPressed: () => _showSiteDialog(existing: site),

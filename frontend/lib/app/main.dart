@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../features/dashboard/dashboard_screen.dart';
+import '../shared/app_shell.dart';
+import '../shared/api_registry.dart';
+import '../shared/workspace_scope.dart';
 import 'router.dart';
 
 void main() {
@@ -105,12 +109,22 @@ class ConstructionApp extends StatelessWidget {
       ),
     );
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Construction Management',
-      theme: theme,
-      initialRoute: AppRoutes.dashboard,
-      routes: appRoutes.routes,
+    return WorkspaceScope(
+      notifier: ApiRegistry.workspace,
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Construction Management',
+        theme: theme,
+        initialRoute: AppRoutes.dashboard,
+        routes: appRoutes.routes,
+        onUnknownRoute: (_) => MaterialPageRoute<void>(
+          builder: (_) => const AppShell(
+            title: 'Dashboard',
+            currentRoute: AppRoutes.dashboard,
+            child: DashboardScreen(),
+          ),
+        ),
+      ),
     );
   }
 }

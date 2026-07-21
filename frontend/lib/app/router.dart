@@ -5,12 +5,16 @@ import '../features/dashboard/dashboard_screen.dart';
 import '../features/inventory/inventory_screen.dart';
 import '../features/sites/sites_screen.dart';
 import '../features/tenants/tenant_admin_screen.dart';
+import '../features/workspace/site_workspace_screen.dart';
 import '../features/workloads/workloads_screen.dart';
 import '../shared/app_shell.dart';
 
 class AppRoutes {
   static const dashboard = '/';
+  static const dashboardAlias = '/dashboard';
   static const sites = '/sites';
+  static const workspace = '/workspace';
+  static const projectsLegacy = '/projects';
   static const inventory = '/inventory';
   static const workloads = '/workloads';
   static const budgets = '/budgets';
@@ -22,7 +26,22 @@ class AppRoutes {
         currentRoute: dashboard,
         child: DashboardScreen(),
       ),
+      dashboardAlias: (_) => const AppShell(
+        title: 'Dashboard',
+        currentRoute: dashboard,
+        child: DashboardScreen(),
+      ),
       sites: (_) => const AppShell(
+        title: 'Sites',
+        currentRoute: sites,
+        child: SitesScreen(),
+      ),
+      workspace: (_) => const AppShell(
+        title: 'Site Workspace',
+        currentRoute: workspace,
+        child: SiteWorkspaceScreen(),
+      ),
+      projectsLegacy: (_) => const AppShell(
         title: 'Sites',
         currentRoute: sites,
         child: SitesScreen(),

@@ -1,41 +1,55 @@
 import 'package:flutter/material.dart';
 
 import '../../shared/api_registry.dart';
+import '../../shared/workspace_scope.dart';
 
 class InventoryScreen extends StatefulWidget {
-  const InventoryScreen({super.key});
+  final int? lockedSiteId;
+
+  const InventoryScreen({super.key, this.lockedSiteId});
 
   @override
   State<InventoryScreen> createState() => _InventoryScreenState();
 }
 
 class _InventoryScreenState extends State<InventoryScreen> {
-  List<Map<String, dynamic>> _sites = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
   int? _siteId;
+  final TextEditingController _categoryController = TextEditingController();
   String _category = '';
   bool? _lowStock;
   String _sortBy = 'item_name';
   String _sortOrder = 'asc';
+  bool _initialized = false;
   bool _isLoading = false;
   String? _error;
+
+  bool get _siteLocked => widget.lockedSiteId != null;
 
   @override
   void initState() {
     super.initState();
-    _loadSites();
+    if (_siteLocked) {
+      _siteId = widget.lockedSiteId;
+      _loadInventory();
+    }
   }
 
-  Future<void> _loadSites() async {
-    final response = await ApiRegistry.sites.listSites(sortBy: 'name', sortOrder: 'asc');
-    final sites = (response['items'] as List<dynamic>? ?? <dynamic>[])
-        .whereType<Map<String, dynamic>>()
-        .toList();
-    setState(() {
-      _sites = sites;
-      _siteId = sites.isEmpty ? null : sites.first['id'] as int;
-    });
-    await _loadInventory();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_siteLocked) {
+      return;
+    }
+    final workspace = WorkspaceScope.of(context);
+    if (!_initialized) {
+      _initialized = true;
+      workspace.ensureLoaded();
+    }
+    if (_siteId != workspace.selectedSiteId) {
+      _siteId = workspace.selectedSiteId;
+      _loadInventory();
+    }
   }
 
   Future<void> _loadInventory() async {
@@ -167,56 +181,64 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        Text('Live inventory records with filter, sort, add, and modify.', style: theme.textTheme.bodyLarge),
+        Text('Simple stock view with one-tap filters for faster decisions.', style: theme.textTheme.bodyLarge),
         const SizedBox(height: 16),
         Wrap(
           spacing: 12,
           runSpacing: 12,
           children: [
-            SizedBox(
-              width: 260,
-              child: DropdownButtonFormField<int>(
-                value: _siteId,
-                items: _sites
-                    .map(
-                      (site) => DropdownMenuItem<int>(
-                        value: site['id'] as int,
-                        child: Text(site['name']?.toString() ?? '-'),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _siteId = value;
-                  });
-                  _loadInventory();
-                },
-                decoration: const InputDecoration(labelText: 'Site'),
+            if (!_siteLocked)
+              SizedBox(
+                width: 280,
+                child: DropdownButtonFormField<int>(
+                  value: _siteId,
+                  items: WorkspaceScope.of(context)
+                      .sites
+                      .map(
+                        (site) => DropdownMenuItem<int>(
+                          value: site['id'] as int,
+                          child: Text(site['name']?.toString() ?? '-'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _siteId = value;
+                    });
+                    WorkspaceScope.of(context).selectSite(value);
+                    _loadInventory();
+                  },
+                  decoration: const InputDecoration(labelText: 'Site'),
+                ),
               ),
-            ),
             SizedBox(
               width: 180,
               child: TextField(
+                controller: _categoryController,
                 decoration: const InputDecoration(labelText: 'Category'),
-                onChanged: (value) => _category = value,
+                onSubmitted: (value) {
+                  _category = value;
+                  _loadInventory();
+                },
               ),
             ),
-            SizedBox(
-              width: 160,
-              child: DropdownButtonFormField<String>(
-                value: _lowStock == null ? 'all' : (_lowStock! ? 'true' : 'false'),
-                items: const [
-                  DropdownMenuItem(value: 'all', child: Text('All Stock')),
-                  DropdownMenuItem(value: 'true', child: Text('Low Stock')),
-                  DropdownMenuItem(value: 'false', child: Text('Healthy Stock')),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _lowStock = value == 'all' ? null : value == 'true';
-                  });
-                },
-                decoration: const InputDecoration(labelText: 'Stock State'),
-              ),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'all', label: Text('All')),
+                ButtonSegment(value: 'low', label: Text('Low')),
+                ButtonSegment(value: 'healthy', label: Text('Healthy')),
+              ],
+              selected: <String>{_lowStock == null ? 'all' : (_lowStock == true ? 'low' : 'healthy')},
+              onSelectionChanged: (selection) {
+                setState(() {
+                  _lowStock = switch (selection.first) {
+                    'low' => true,
+                    'healthy' => false,
+                    _ => null,
+                  };
+                });
+                _loadInventory();
+              },
             ),
             SizedBox(
               width: 180,
@@ -228,11 +250,37 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   DropdownMenuItem(value: 'current_quantity', child: Text('Sort: Current Qty')),
                   DropdownMenuItem(value: 'minimum_quantity', child: Text('Sort: Minimum Qty')),
                 ],
-                onChanged: (value) => setState(() => _sortBy = value ?? 'item_name'),
+                onChanged: (value) {
+                  setState(() => _sortBy = value ?? 'item_name');
+                  _loadInventory();
+                },
                 decoration: const InputDecoration(labelText: 'Sort By'),
               ),
             ),
-            FilledButton.icon(onPressed: _loadInventory, icon: const Icon(Icons.filter_alt), label: const Text('Apply')),
+            OutlinedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _categoryController.clear();
+                  _category = '';
+                  _lowStock = null;
+                  _sortBy = 'item_name';
+                  _sortOrder = 'asc';
+                });
+                _loadInventory();
+              },
+              icon: const Icon(Icons.restart_alt_rounded),
+              label: const Text('Reset'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _sortOrder = _sortOrder == 'asc' ? 'desc' : 'asc';
+                });
+                _loadInventory();
+              },
+              icon: Icon(_sortOrder == 'asc' ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded),
+              label: Text(_sortOrder == 'asc' ? 'Asc' : 'Desc'),
+            ),
           ],
         ),
         const SizedBox(height: 16),

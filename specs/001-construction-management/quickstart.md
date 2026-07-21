@@ -50,3 +50,89 @@ flutter test
 ## CI/CD
 - GitLab CI should run backend tests, frontend tests, and build checks on every merge request.
 - Production releases should be based on a passing pipeline and a reviewed merge commit.
+
+## Post-Change Runbook
+
+Use this sequence after backend or frontend code changes.
+
+### 1) Restart backend service
+
+Before restart, always apply schema migrations:
+
+```bash
+cd /home/ubuntu/projects/constructionapp/backend
+source .venv/bin/activate
+FLASK_APP=app:create_app flask db upgrade
+```
+
+Preferred (systemd-managed service):
+
+```bash
+sudo systemctl restart constructionapp-backend && curl -s -o /dev/null -w "api_health:%{http_code}\n" http://127.0.0.1:5000/api/v1/health
+```
+
+Fallback (if port 5000 is held by a stale process):
+
+```bash
+PID=$(lsof -tiTCP:5000 -sTCP:LISTEN)
+if [ -n "$PID" ]; then
+	kill "$PID"
+fi
+cd /home/ubuntu/projects/constructionapp/backend
+source .venv/bin/activate
+FLASK_APP=app:create_app flask db upgrade
+FLASK_APP=app:create_app python -m flask run --host 127.0.0.1 --port 5000
+```
+
+Quick health check only:
+
+```bash
+curl -s -o /dev/null -w "api_health:%{http_code}\n" http://127.0.0.1:5000/api/v1/health
+```
+
+### 2) Build frontend
+
+```bash
+cd /home/ubuntu/projects/constructionapp/frontend
+/home/ubuntu/flutter/bin/flutter pub get
+/home/ubuntu/flutter/bin/flutter build web --release
+```
+
+### 3) Sync deploy files
+
+Primary deploy sync:
+
+```bash
+cd /home/ubuntu/projects/constructionapp/frontend
+sudo rsync -av --delete build/web/ /var/www/kaniskahomes/
+```
+
+Equivalent sync command (same source and target):
+
+```bash
+sudo rsync -av --delete build/web/ /var/www/kaniskahomes/
+```
+
+### 4) Verify deployed frontend
+
+```bash
+curl -I http://127.0.0.1:8080
+ls -la /var/www/kaniskahomes/
+```
+
+### 5) Recommended full sequence after any code change
+
+```bash
+# backend
+cd /home/ubuntu/projects/constructionapp/backend
+source .venv/bin/activate
+FLASK_APP=app:create_app flask db upgrade
+sudo systemctl restart constructionapp-backend
+curl -s -o /dev/null -w "api_health:%{http_code}\n" http://127.0.0.1:5000/api/v1/health
+
+# frontend build + deploy sync
+cd /home/ubuntu/projects/constructionapp/frontend
+/home/ubuntu/flutter/bin/flutter pub get
+/home/ubuntu/flutter/bin/flutter build web --release
+sudo rsync -av --delete build/web/ /var/www/kaniskahomes/
+```

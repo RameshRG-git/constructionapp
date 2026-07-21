@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
 
 import '../../shared/api_registry.dart';
+import '../../shared/workspace_scope.dart';
 
 class WorkloadsScreen extends StatefulWidget {
-  const WorkloadsScreen({super.key});
+  final int? lockedSiteId;
+
+  const WorkloadsScreen({super.key, this.lockedSiteId});
 
   @override
   State<WorkloadsScreen> createState() => _WorkloadsScreenState();
 }
 
 class _WorkloadsScreenState extends State<WorkloadsScreen> {
-  List<Map<String, dynamic>> _sites = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
   int? _siteId;
   String _status = '';
+  final TextEditingController _assigneeController = TextEditingController();
   String _assignee = '';
   String _sortBy = 'due_date';
   String _sortOrder = 'asc';
+  bool _initialized = false;
   bool _isLoading = false;
   String? _error;
+
+  bool get _siteLocked => widget.lockedSiteId != null;
 
   String _formatDate(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
@@ -63,19 +69,27 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSites();
+    if (_siteLocked) {
+      _siteId = widget.lockedSiteId;
+      _loadWorkloads();
+    }
   }
 
-  Future<void> _loadSites() async {
-    final response = await ApiRegistry.sites.listSites(sortBy: 'name', sortOrder: 'asc');
-    final sites = (response['items'] as List<dynamic>? ?? <dynamic>[])
-        .whereType<Map<String, dynamic>>()
-        .toList();
-    setState(() {
-      _sites = sites;
-      _siteId = sites.isEmpty ? null : sites.first['id'] as int;
-    });
-    await _loadWorkloads();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_siteLocked) {
+      return;
+    }
+    final workspace = WorkspaceScope.of(context);
+    if (!_initialized) {
+      _initialized = true;
+      workspace.ensureLoaded();
+    }
+    if (_siteId != workspace.selectedSiteId) {
+      _siteId = workspace.selectedSiteId;
+      _loadWorkloads();
+    }
   }
 
   Future<void> _loadWorkloads() async {
@@ -266,56 +280,102 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        Text('Work assignment list with API-backed create, edit, sort, and filter.', style: theme.textTheme.bodyLarge),
+        Text('Track assignments with easy status and assignee filters.', style: theme.textTheme.bodyLarge),
         const SizedBox(height: 16),
         Wrap(
           spacing: 12,
           runSpacing: 12,
           children: [
-            SizedBox(
-              width: 260,
-              child: DropdownButtonFormField<int>(
-                value: _siteId,
-                items: _sites
-                    .map(
-                      (site) => DropdownMenuItem<int>(
-                        value: site['id'] as int,
-                        child: Text(site['name']?.toString() ?? '-'),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _siteId = value;
-                  });
-                  _loadWorkloads();
-                },
-                decoration: const InputDecoration(labelText: 'Site'),
+            if (!_siteLocked)
+              SizedBox(
+                width: 280,
+                child: DropdownButtonFormField<int>(
+                  value: _siteId,
+                  items: WorkspaceScope.of(context)
+                      .sites
+                      .map(
+                        (site) => DropdownMenuItem<int>(
+                          value: site['id'] as int,
+                          child: Text(site['name']?.toString() ?? '-'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _siteId = value;
+                    });
+                    WorkspaceScope.of(context).selectSite(value);
+                    _loadWorkloads();
+                  },
+                  decoration: const InputDecoration(labelText: 'Site'),
+                ),
               ),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: '', label: Text('All')),
+                ButtonSegment(value: 'open', label: Text('Open')),
+                ButtonSegment(value: 'in_progress', label: Text('In Progress')),
+                ButtonSegment(value: 'blocked', label: Text('Blocked')),
+                ButtonSegment(value: 'completed', label: Text('Done')),
+              ],
+              selected: <String>{_status},
+              onSelectionChanged: (selection) {
+                setState(() => _status = selection.first);
+                _loadWorkloads();
+              },
             ),
             SizedBox(
               width: 180,
-              child: DropdownButtonFormField<String>(
-                value: _status,
-                items: const [
-                  DropdownMenuItem(value: '', child: Text('All Statuses')),
-                  DropdownMenuItem(value: 'open', child: Text('Open')),
-                  DropdownMenuItem(value: 'in_progress', child: Text('In Progress')),
-                  DropdownMenuItem(value: 'blocked', child: Text('Blocked')),
-                  DropdownMenuItem(value: 'completed', child: Text('Completed')),
-                ],
-                onChanged: (value) => setState(() => _status = value ?? ''),
-                decoration: const InputDecoration(labelText: 'Status'),
+              child: TextField(
+                controller: _assigneeController,
+                decoration: const InputDecoration(labelText: 'Assignee'),
+                onSubmitted: (value) {
+                  _assignee = value;
+                  _loadWorkloads();
+                },
               ),
             ),
             SizedBox(
-              width: 220,
-              child: TextField(
-                decoration: const InputDecoration(labelText: 'Assignee'),
-                onChanged: (value) => _assignee = value,
+              width: 190,
+              child: DropdownButtonFormField<String>(
+                value: _sortBy,
+                items: const [
+                  DropdownMenuItem(value: 'due_date', child: Text('Sort: Due Date')),
+                  DropdownMenuItem(value: 'status', child: Text('Sort: Status')),
+                  DropdownMenuItem(value: 'priority', child: Text('Sort: Priority')),
+                  DropdownMenuItem(value: 'assignee_name', child: Text('Sort: Assignee')),
+                ],
+                onChanged: (value) {
+                  setState(() => _sortBy = value ?? 'due_date');
+                  _loadWorkloads();
+                },
+                decoration: const InputDecoration(labelText: 'Sort By'),
               ),
             ),
-            FilledButton.icon(onPressed: _loadWorkloads, icon: const Icon(Icons.filter_alt), label: const Text('Apply')),
+            OutlinedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _sortOrder = _sortOrder == 'asc' ? 'desc' : 'asc';
+                });
+                _loadWorkloads();
+              },
+              icon: Icon(_sortOrder == 'asc' ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded),
+              label: Text(_sortOrder == 'asc' ? 'Asc' : 'Desc'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _status = '';
+                  _assigneeController.clear();
+                  _assignee = '';
+                  _sortBy = 'due_date';
+                  _sortOrder = 'asc';
+                });
+                _loadWorkloads();
+              },
+              icon: const Icon(Icons.restart_alt_rounded),
+              label: const Text('Reset'),
+            ),
           ],
         ),
         const SizedBox(height: 16),

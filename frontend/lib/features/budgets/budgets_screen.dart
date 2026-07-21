@@ -1,40 +1,53 @@
 import 'package:flutter/material.dart';
 
 import '../../shared/api_registry.dart';
+import '../../shared/workspace_scope.dart';
 
 class BudgetsScreen extends StatefulWidget {
-  const BudgetsScreen({super.key});
+  final int? lockedSiteId;
+
+  const BudgetsScreen({super.key, this.lockedSiteId});
 
   @override
   State<BudgetsScreen> createState() => _BudgetsScreenState();
 }
 
 class _BudgetsScreenState extends State<BudgetsScreen> {
-  List<Map<String, dynamic>> _sites = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
   int? _siteId;
+  bool _initialized = false;
   bool _isLoading = false;
   String? _error;
   double _plannedTotal = 0;
   double _actualTotal = 0;
   double _variance = 0;
 
+  bool get _siteLocked => widget.lockedSiteId != null;
+
   @override
   void initState() {
     super.initState();
-    _loadSites();
+    if (_siteLocked) {
+      _siteId = widget.lockedSiteId;
+      _loadBudgets();
+    }
   }
 
-  Future<void> _loadSites() async {
-    final response = await ApiRegistry.sites.listSites(sortBy: 'name', sortOrder: 'asc');
-    final sites = (response['items'] as List<dynamic>? ?? <dynamic>[])
-        .whereType<Map<String, dynamic>>()
-        .toList();
-    setState(() {
-      _sites = sites;
-      _siteId = sites.isEmpty ? null : sites.first['id'] as int;
-    });
-    await _loadBudgets();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_siteLocked) {
+      return;
+    }
+    final workspace = WorkspaceScope.of(context);
+    if (!_initialized) {
+      _initialized = true;
+      workspace.ensureLoaded();
+    }
+    if (_siteId != workspace.selectedSiteId) {
+      _siteId = workspace.selectedSiteId;
+      _loadBudgets();
+    }
   }
 
   Future<void> _loadBudgets() async {
@@ -157,27 +170,30 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
         const SizedBox(height: 8),
         Text('Budget data from PostgreSQL with create and modify support.', style: theme.textTheme.bodyLarge),
         const SizedBox(height: 16),
-        SizedBox(
-          width: 260,
-          child: DropdownButtonFormField<int>(
-            value: _siteId,
-            items: _sites
-                .map(
-                  (site) => DropdownMenuItem<int>(
-                    value: site['id'] as int,
-                    child: Text(site['name']?.toString() ?? '-'),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) {
-              setState(() {
-                _siteId = value;
-              });
-              _loadBudgets();
-            },
-            decoration: const InputDecoration(labelText: 'Site'),
+        if (!_siteLocked)
+          SizedBox(
+            width: 280,
+            child: DropdownButtonFormField<int>(
+              value: _siteId,
+              items: WorkspaceScope.of(context)
+                  .sites
+                  .map(
+                    (site) => DropdownMenuItem<int>(
+                      value: site['id'] as int,
+                      child: Text(site['name']?.toString() ?? '-'),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  _siteId = value;
+                });
+                WorkspaceScope.of(context).selectSite(value);
+                _loadBudgets();
+              },
+              decoration: const InputDecoration(labelText: 'Site'),
+            ),
           ),
-        ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 12,
