@@ -1,17 +1,39 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
-import 'workspace_state.dart';
+class WorkspaceController extends ChangeNotifier {
+  WorkspaceController._();
 
-class WorkspaceScope extends InheritedNotifier<WorkspaceState> {
-  const WorkspaceScope({
-    super.key,
-    required WorkspaceState notifier,
-    required Widget child,
-  }) : super(notifier: notifier, child: child);
+  static final WorkspaceController instance = WorkspaceController._();
 
-  static WorkspaceState of(BuildContext context) {
+  Map<String, dynamic>? _selectedSite;
+
+  Map<String, dynamic>? get selectedSite => _selectedSite;
+
+  int? get selectedSiteId => _selectedSite?['id'] as int?;
+
+  String get selectedSiteName => _selectedSite?['name']?.toString() ?? 'Select a site';
+
+  void selectSite(Map<String, dynamic> site) {
+    _selectedSite = Map<String, dynamic>.from(site);
+    notifyListeners();
+  }
+
+  void clearSite() {
+    if (_selectedSite == null) {
+      return;
+    }
+    _selectedSite = null;
+    notifyListeners();
+  }
+}
+
+class WorkspaceScope extends InheritedNotifier<WorkspaceController> {
+  const WorkspaceScope({super.key, required WorkspaceController controller, required super.child})
+      : super(notifier: controller);
+
+  static WorkspaceController of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<WorkspaceScope>();
-    assert(scope != null, 'WorkspaceScope is missing in widget tree.');
+    assert(scope != null, 'WorkspaceScope is missing from the widget tree');
     return scope!.notifier!;
   }
 }

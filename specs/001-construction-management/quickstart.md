@@ -132,6 +132,7 @@ curl -s -o /dev/null -w "api_health:%{http_code}\n" http://127.0.0.1:5000/api/v1
 
 # frontend build + deploy sync
 cd /home/ubuntu/projects/constructionapp/frontend
+/home/ubuntu/flutter/bin/flutter pub analyze
 /home/ubuntu/flutter/bin/flutter pub get
 /home/ubuntu/flutter/bin/flutter build web --release
 sudo rsync -av --delete build/web/ /var/www/kaniskahomes/

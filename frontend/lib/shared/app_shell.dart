@@ -26,15 +26,12 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     _tenantFuture = ApiRegistry.tenants.getCurrentTenant();
-    ApiRegistry.workspace.ensureLoaded();
   }
 
   static const _destinations = <({String route, IconData icon, String label})>[
     (route: '/', icon: Icons.dashboard_rounded, label: 'Dashboard'),
     (route: '/sites', icon: Icons.apartment_rounded, label: 'Sites'),
-    (route: '/workspace', icon: Icons.workspaces_rounded, label: 'Workspace'),
     (route: '/inventory', icon: Icons.inventory_rounded, label: 'Inventory'),
-    (route: '/workloads', icon: Icons.engineering_rounded, label: 'Workloads'),
     (route: '/budgets', icon: Icons.account_balance_wallet_rounded, label: 'Budgets'),
     (route: '/tenant-admin', icon: Icons.business_rounded, label: 'Tenant Admin'),
   ];
@@ -62,8 +59,7 @@ class _AppShellState extends State<AppShell> {
             final tenantName = tenant['name']?.toString() ?? 'KaniskaHomes';
             final logoUrl = tenant['logo_url']?.toString();
             final workspace = WorkspaceScope.of(context);
-            final selectedSiteId = workspace.selectedSiteId;
-            final selectedSiteName = workspace.selectedSite?['name']?.toString() ?? 'Select site';
+            final selectedSite = workspace.selectedSite;
 
             return Scaffold(
               body: Container(
@@ -103,37 +99,14 @@ class _AppShellState extends State<AppShell> {
                               ),
                             ),
                             const Spacer(),
-                            SizedBox(
-                              width: 280,
-                              child: DropdownButtonFormField<int>(
-                                value: selectedSiteId,
-                                isExpanded: true,
-                                items: workspace.sites
-                                    .map(
-                                      (site) => DropdownMenuItem<int>(
-                                        value: site['id'] as int,
-                                        child: Text(site['name']?.toString() ?? '-'),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (value) => workspace.selectSite(value),
-                                decoration: InputDecoration(
-                                  labelText: 'Current site',
-                                  hintText: selectedSiteName,
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                ),
+                            if (selectedSite != null) ...[
+                              ActionChip(
+                                avatar: const Icon(Icons.apartment_rounded, size: 18),
+                                label: Text('Workspace: ${selectedSite['name']?.toString() ?? ''}'),
+                                onPressed: () => Navigator.of(context).pushNamed('/site-workspace'),
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            OutlinedButton.icon(
-                              onPressed: selectedSiteId == null
-                                  ? null
-                                  : () => Navigator.of(context).pushReplacementNamed('/workspace'),
-                              icon: const Icon(Icons.arrow_forward_rounded),
-                              label: const Text('Open Workspace'),
-                            ),
-                            const SizedBox(width: 10),
+                              const SizedBox(width: 10),
+                            ],
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(

@@ -5,7 +5,6 @@ import '../features/sites/site_api.dart';
 import '../features/tenants/tenant_api.dart';
 import '../features/workloads/workload_api.dart';
 import 'api_client.dart';
-import 'workspace_state.dart';
 
 class ApiRegistry {
   static final ApiClient client = ApiClient(baseUrl: Uri.base.origin);
@@ -16,5 +15,4 @@ class ApiRegistry {
   static final BudgetApi budgets = BudgetApi(client);
   static final DashboardApi dashboard = DashboardApi(client);
   static final TenantApi tenants = TenantApi(client);
-  static final WorkspaceState workspace = WorkspaceState(sitesApi: sites);
 }

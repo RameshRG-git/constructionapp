@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../shared/api_registry.dart';
@@ -12,13 +14,55 @@ class SitesScreen extends StatefulWidget {
 
 class _SitesScreenState extends State<SitesScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _statusFilter = '';
-  String _sortBy = 'name';
+  Timer? _refreshDebounce;
+  String _statusFilter = 'all';
+  String _sortBy = 'created_at';
   String _sortOrder = 'desc';
   bool _isLoading = false;
   String? _error;
   List<Map<String, dynamic>> _sites = <Map<String, dynamic>>[];
-  bool _searchExpanded = false;
+
+  List<Map<String, dynamic>> get _visibleSites {
+    final query = _searchController.text.trim().toLowerCase();
+    final filtered = _sites.where((site) {
+      final status = site['status']?.toString().toLowerCase() ?? '';
+      final haystack = [
+        site['name'],
+        site['site_location'],
+        site['owner_name'],
+      ].map((value) => value?.toString().toLowerCase() ?? '').join(' ');
+
+      final matchesStatus = _statusFilter == 'all' || status == _statusFilter;
+      final matchesQuery = query.isEmpty || haystack.contains(query);
+      return matchesStatus && matchesQuery;
+    }).toList();
+
+    int compareDate(String? left, String? right) {
+      final leftDate = DateTime.tryParse(left ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final rightDate = DateTime.tryParse(right ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return leftDate.compareTo(rightDate);
+    }
+
+    filtered.sort((left, right) {
+      int result;
+      switch (_sortBy) {
+        case 'name':
+          result = (left['name']?.toString() ?? '').compareTo(right['name']?.toString() ?? '');
+          break;
+        case 'planned_start_date':
+          result = compareDate(left['planned_start_date']?.toString(), right['planned_start_date']?.toString());
+          break;
+        case 'planned_end_date':
+          result = compareDate(left['planned_end_date']?.toString(), right['planned_end_date']?.toString());
+          break;
+        default:
+          result = compareDate(left['created_at']?.toString(), right['created_at']?.toString());
+      }
+      return _sortOrder == 'asc' ? result : -result;
+    });
+
+    return filtered;
+  }
 
   String _formatDate(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
@@ -66,18 +110,20 @@ class _SitesScreenState extends State<SitesScreen> {
     _loadSites();
   }
 
+  @override
+  void dispose() {
+    _refreshDebounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadSites() async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
-      final response = await ApiRegistry.sites.listSites(
-        status: _statusFilter,
-        search: _searchController.text.trim(),
-        sortBy: _sortBy,
-        sortOrder: _sortOrder,
-      );
+      final response = await ApiRegistry.sites.listSites(sortBy: 'created_at', sortOrder: 'desc');
       final items = (response['items'] as List<dynamic>? ?? <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .toList();
@@ -95,25 +141,18 @@ class _SitesScreenState extends State<SitesScreen> {
     }
   }
 
-  String _statusLabel(String value) {
-    switch (value) {
-      case 'planned':
-        return 'Planned';
-      case 'active':
-        return 'Active';
-      case 'on_hold':
-        return 'On Hold';
-      case 'closed':
-        return 'Closed';
-      default:
-        return 'All';
-    }
+  void _scheduleRefresh() {
+    _refreshDebounce?.cancel();
+    _refreshDebounce = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
-  void _enterWorkspace(Map<String, dynamic> site) {
-    final workspace = WorkspaceScope.of(context);
-    workspace.selectSite(site['id'] as int);
-    Navigator.of(context).pushReplacementNamed('/workspace');
+  void _openWorkspace(Map<String, dynamic> site) {
+    WorkspaceScope.of(context).selectSite(site);
+    Navigator.of(context).pushNamed('/site-workspace');
   }
 
   Future<void> _showSiteDialog({Map<String, dynamic>? existing}) async {
@@ -231,31 +270,13 @@ class _SitesScreenState extends State<SitesScreen> {
                   return;
                 }
 
-                    final workspace = WorkspaceScope.of(context);
                 if (endController.text.trim().isNotEmpty && plannedEndDate == null) {
                   ScaffoldMessenger.of(rootContext).showSnackBar(
                     const SnackBar(content: Text('Planned End Date must be in DD/MM/YYYY format.')),
                   );
                   return;
                 }
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Sites', style: theme.textTheme.headlineMedium),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Pick a site once, then enter its workspace to manage inventory, workloads, and budgets in one place.',
-                                    style: theme.textTheme.bodyMedium,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => setState(() => _searchExpanded = !_searchExpanded),
-                              icon: Icon(_searchExpanded ? Icons.search_off_rounded : Icons.search_rounded),
-                              tooltip: _searchExpanded ? 'Hide search' : 'Search sites',
-                            ),
+
                 final payload = <String, dynamic>{
                   'name': name,
                   'site_location': siteLocation,
@@ -263,88 +284,9 @@ class _SitesScreenState extends State<SitesScreen> {
                   'planned_start_date': plannedStartDate,
                   'status': status,
                   if (plannedEndDate != null) 'planned_end_date': plannedEndDate,
-                        const SizedBox(height: 14),
-                        if (_searchExpanded)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: TextField(
-                              controller: _searchController,
-                              onSubmitted: (_) => _loadSites(),
-                              decoration: InputDecoration(
-                                labelText: 'Search by site, owner, or location',
-                                prefixIcon: const Icon(Icons.search),
-                                suffixIcon: IconButton(
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    _loadSites();
-                                  },
-                                  icon: const Icon(Icons.close_rounded),
-                                ),
-                              ),
-                            ),
-                          ),
-                        Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            SegmentedButton<String>(
-                              segments: const [
-                                ButtonSegment(value: '', label: Text('All')),
-                                ButtonSegment(value: 'active', label: Text('Active')),
-                                ButtonSegment(value: 'planned', label: Text('Planned')),
-                                ButtonSegment(value: 'on_hold', label: Text('On Hold')),
-                                ButtonSegment(value: 'closed', label: Text('Closed')),
-                              ],
-                              selected: <String>{_statusFilter},
-                              onSelectionChanged: (selection) {
-                                setState(() => _statusFilter = selection.first);
-                                _loadSites();
-                              },
-                            ),
-                            SizedBox(
-                              width: 180,
-                              child: DropdownButtonFormField<String>(
-                                value: _sortBy,
-                                items: const [
-                                  DropdownMenuItem(value: 'name', child: Text('Sort: Name')),
-                                  DropdownMenuItem(value: 'created_at', child: Text('Sort: Created')),
-                                  DropdownMenuItem(value: 'planned_start_date', child: Text('Sort: Start Date')),
-                                  DropdownMenuItem(value: 'planned_end_date', child: Text('Sort: End Date')),
-                                ],
-                                onChanged: (value) {
-                                  setState(() => _sortBy = value ?? 'name');
-                                  _loadSites();
-                                },
-                                decoration: const InputDecoration(labelText: 'Sort'),
-                              ),
-                            ),
-                            Tooltip(
-                              message: _sortOrder == 'asc' ? 'Ascending' : 'Descending',
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  setState(() => _sortOrder = _sortOrder == 'asc' ? 'desc' : 'asc');
-                                  _loadSites();
-                                },
-                                icon: Icon(_sortOrder == 'asc' ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded),
-                                label: Text(_sortOrder == 'asc' ? 'A to Z' : 'Z to A'),
-                              ),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: () {
-                                setState(() {
-                                  _statusFilter = '';
-                                  _sortBy = 'name';
-                                  _sortOrder = 'desc';
-                                  _searchController.clear();
-                                });
-                                _loadSites();
-                              },
-                              icon: const Icon(Icons.restart_alt_rounded),
-                              label: const Text('Reset'),
-                            ),
-                          ],
-                        ),
+                };
+                if (existing == null) {
+                  await ApiRegistry.sites.createSite(payload);
                 } else {
                   await ApiRegistry.sites.updateSite(existing['id'] as int, payload);
                 }
@@ -353,8 +295,8 @@ class _SitesScreenState extends State<SitesScreen> {
                 }
                 Navigator.pop(context, true);
               },
-              child: const Text('Save'),
-            ),
+                child: const Text('Save'),
+              ),
           ],
         );
       },
@@ -368,6 +310,7 @@ class _SitesScreenState extends State<SitesScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final visibleSites = _visibleSites;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,107 +326,132 @@ class _SitesScreenState extends State<SitesScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        Text('List, filter, sort, add, and modify sites from PostgreSQL.', style: theme.textTheme.bodyLarge),
+        Text('Pick a site once, then enter its workspace to manage everything in one place.', style: theme.textTheme.bodyLarge),
         const SizedBox(height: 16),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            SizedBox(
-              width: 260,
-              child: TextField(
-                controller: _searchController,
-                decoration: const InputDecoration(labelText: 'Search', prefixIcon: Icon(Icons.search)),
-              ),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _searchController,
+                  onChanged: (_) => _scheduleRefresh(),
+                  decoration: const InputDecoration(
+                    labelText: 'Search sites, locations, or owners',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final status in const ['all', 'planned', 'active', 'on_hold', 'closed'])
+                      ChoiceChip(
+                        label: Text(
+                          status == 'all'
+                              ? 'All'
+                              : status == 'on_hold'
+                                  ? 'On Hold'
+                                  : status[0].toUpperCase() + status.substring(1).replaceAll('_', ' '),
+                        ),
+                        selected: _statusFilter == status,
+                        onSelected: (_) => setState(() => _statusFilter = status),
+                      ),
+                    const SizedBox(width: 10),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'created_at', label: Text('Newest')),
+                        ButtonSegment(value: 'name', label: Text('Name')),
+                        ButtonSegment(value: 'planned_start_date', label: Text('Start')),
+                        ButtonSegment(value: 'planned_end_date', label: Text('End')),
+                      ],
+                      selected: {_sortBy},
+                      onSelectionChanged: (value) => setState(() => _sortBy = value.first),
+                    ),
+                    IconButton(
+                      tooltip: _sortOrder == 'asc' ? 'Ascending' : 'Descending',
+                      onPressed: () => setState(() => _sortOrder = _sortOrder == 'asc' ? 'desc' : 'asc'),
+                      icon: Icon(
+                        _sortOrder == 'asc' ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _loadSites,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Refresh'),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            SizedBox(
-              width: 180,
-              child: DropdownButtonFormField<String>(
-                value: _statusFilter,
-                items: const [
-                  DropdownMenuItem(value: '', child: Text('All Statuses')),
-                  DropdownMenuItem(value: 'planned', child: Text('Planned')),
-                  DropdownMenuItem(value: 'active', child: Text('Active')),
-                  DropdownMenuItem(value: 'on_hold', child: Text('On Hold')),
-                  DropdownMenuItem(value: 'closed', child: Text('Closed')),
-                ],
-                onChanged: (value) => setState(() => _statusFilter = value ?? ''),
-                decoration: const InputDecoration(labelText: 'Status'),
-              ),
-            ),
-            SizedBox(
-              width: 190,
-              child: DropdownButtonFormField<String>(
-                value: _sortBy,
-                items: const [
-                  DropdownMenuItem(value: 'created_at', child: Text('Sort: Created')),
-                  DropdownMenuItem(value: 'name', child: Text('Sort: Name')),
-                  DropdownMenuItem(value: 'planned_start_date', child: Text('Sort: Start Date')),
-                  DropdownMenuItem(value: 'planned_end_date', child: Text('Sort: End Date')),
-                ],
-                onChanged: (value) => setState(() => _sortBy = value ?? 'created_at'),
-                decoration: const InputDecoration(labelText: 'Sort By'),
-              ),
-            ),
-            SizedBox(
-              width: 140,
-              child: DropdownButtonFormField<String>(
-                value: _sortOrder,
-                items: const [
-                  DropdownMenuItem(value: 'asc', child: Text('Ascending')),
-                  DropdownMenuItem(value: 'desc', child: Text('Descending')),
-                ],
-                onChanged: (value) => setState(() => _sortOrder = value ?? 'desc'),
-                decoration: const InputDecoration(labelText: 'Order'),
-              ),
-            ),
-            FilledButton.icon(onPressed: _loadSites, icon: const Icon(Icons.filter_alt), label: const Text('Apply')),
-          ],
+          ),
         ),
         const SizedBox(height: 16),
         Expanded(
-          child: Card(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                    ? Center(child: Text('Error: $_error'))
-                    : _sites.isEmpty
-                        ? const Center(child: Text('No sites found'))
-                        : ListView.separated(
-                            itemCount: _sites.length,
-                            separatorBuilder: (_, __) => const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              final site = _sites[index];
-                              return ListTile(
-                                title: Text(site['name']?.toString() ?? '-'),
-                                subtitle: Text(
-                                  '${site['site_location'] ?? '-'} • Owner: ${site['owner_name'] ?? '-'}',
-                                ),
-                                onTap: () {
-                                  workspace.selectSite(site['id'] as int);
-                                },
-                                trailing: Wrap(
-                                  spacing: 8,
-                                  crossAxisAlignment: WrapCrossAlignment.center,
-                                  children: [
-                                    Chip(label: Text(_statusLabel(site['status']?.toString() ?? ''))),
-                                    OutlinedButton.icon(
-                                      onPressed: () => _enterWorkspace(site),
-                                      icon: const Icon(Icons.launch_rounded),
-                                      label: const Text('Enter Workspace'),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.edit_outlined),
-                                      onPressed: () => _showSiteDialog(existing: site),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? Center(child: Text('Error: $_error'))
+                  : visibleSites.isEmpty
+                      ? const Center(child: Text('No sites found'))
+                      : GridView.builder(
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 360,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                            childAspectRatio: 1.2,
                           ),
+                          itemCount: visibleSites.length,
+                          itemBuilder: (context, index) {
+                            final site = visibleSites[index];
+                            return Card(
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                onTap: () => _openWorkspace(site),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(18),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              site['name']?.toString() ?? '-',
+                                              style: theme.textTheme.titleLarge,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          Chip(label: Text(site['status']?.toString() ?? '-')),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(site['site_location']?.toString() ?? '-', style: theme.textTheme.bodyLarge),
+                                      const SizedBox(height: 6),
+                                      Text('Owner: ${site['owner_name']?.toString() ?? '-'}'),
+                                      const Spacer(),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: [
+                                          OutlinedButton.icon(
+                                            onPressed: () => _showSiteDialog(existing: site),
+                                            icon: const Icon(Icons.edit_outlined),
+                                            label: const Text('Edit'),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
           ),
-        ),
       ],
     );
   }

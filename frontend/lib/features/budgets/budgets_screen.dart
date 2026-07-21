@@ -4,9 +4,7 @@ import '../../shared/api_registry.dart';
 import '../../shared/workspace_scope.dart';
 
 class BudgetsScreen extends StatefulWidget {
-  final int? lockedSiteId;
-
-  const BudgetsScreen({super.key, this.lockedSiteId});
+  const BudgetsScreen({super.key});
 
   @override
   State<BudgetsScreen> createState() => _BudgetsScreenState();
@@ -15,37 +13,35 @@ class BudgetsScreen extends StatefulWidget {
 class _BudgetsScreenState extends State<BudgetsScreen> {
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
   int? _siteId;
-  bool _initialized = false;
+  String _status = '';
+  String _sortBy = 'recorded_at';
+  String _sortOrder = 'desc';
   bool _isLoading = false;
   String? _error;
   double _plannedTotal = 0;
   double _actualTotal = 0;
   double _variance = 0;
 
-  bool get _siteLocked => widget.lockedSiteId != null;
-
   @override
   void initState() {
     super.initState();
-    if (_siteLocked) {
-      _siteId = widget.lockedSiteId;
-      _loadBudgets();
-    }
+    _loadSites();
+  }
+
+  Future<void> _loadSites() async {
+    final workspaceSiteId = WorkspaceScope.of(context).selectedSiteId;
+    setState(() {
+      _siteId = workspaceSiteId;
+    });
+    await _loadBudgets();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_siteLocked) {
-      return;
-    }
-    final workspace = WorkspaceScope.of(context);
-    if (!_initialized) {
-      _initialized = true;
-      workspace.ensureLoaded();
-    }
-    if (_siteId != workspace.selectedSiteId) {
-      _siteId = workspace.selectedSiteId;
+    final workspaceSiteId = WorkspaceScope.of(context).selectedSiteId;
+    if (workspaceSiteId != null && workspaceSiteId != _siteId) {
+      _siteId = workspaceSiteId;
       _loadBudgets();
     }
   }
@@ -61,7 +57,12 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     });
 
     try {
-      final response = await ApiRegistry.budgets.listBudgets(_siteId!);
+      final response = await ApiRegistry.budgets.listBudgets(
+        _siteId!,
+        status: _status,
+        sortBy: _sortBy,
+        sortOrder: _sortOrder,
+      );
       final items = (response['items'] as List<dynamic>? ?? <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .toList();
@@ -153,6 +154,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final workspace = WorkspaceScope.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,40 +170,68 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        Text('Budget data from PostgreSQL with create and modify support.', style: theme.textTheme.bodyLarge),
+        Text('Budgets stay inside the selected site workspace.', style: theme.textTheme.bodyLarge),
         const SizedBox(height: 16),
-        if (!_siteLocked)
-          SizedBox(
-            width: 280,
-            child: DropdownButtonFormField<int>(
-              value: _siteId,
-              items: WorkspaceScope.of(context)
-                  .sites
-                  .map(
-                    (site) => DropdownMenuItem<int>(
-                      value: site['id'] as int,
-                      child: Text(site['name']?.toString() ?? '-'),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _siteId = value;
-                });
-                WorkspaceScope.of(context).selectSite(value);
-                _loadBudgets();
-              },
-              decoration: const InputDecoration(labelText: 'Site'),
+        if (workspace.selectedSite != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Chip(label: Text('Working in ${workspace.selectedSiteName}')),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).pushNamed('/site-workspace'),
+                  icon: const Icon(Icons.open_in_new_rounded),
+                  label: const Text('Open workspace'),
+                ),
+              ],
             ),
           ),
         const SizedBox(height: 12),
         Wrap(
+          runSpacing: 8,
           spacing: 12,
           children: [
+            for (final status in const [
+              ('', 'All'),
+              ('under_budget', 'Under Budget'),
+              ('on_budget', 'On Budget'),
+              ('over_budget', 'Over Budget'),
+            ])
+              ChoiceChip(
+                label: Text(status.$2),
+                selected: _status == status.$1,
+                onSelected: (_) {
+                  setState(() => _status = status.$1);
+                  _loadBudgets();
+                },
+              ),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'recorded_at', label: Text('Latest')),
+                ButtonSegment(value: 'planned_amount', label: Text('Planned')),
+                ButtonSegment(value: 'actual_amount', label: Text('Actual')),
+                ButtonSegment(value: 'category_name', label: Text('Category')),
+              ],
+              selected: {_sortBy},
+              onSelectionChanged: (selection) {
+                setState(() => _sortBy = selection.first);
+                _loadBudgets();
+              },
+            ),
+            IconButton(
+              tooltip: _sortOrder == 'asc' ? 'Ascending' : 'Descending',
+              onPressed: () {
+                setState(() => _sortOrder = _sortOrder == 'asc' ? 'desc' : 'asc');
+                _loadBudgets();
+              },
+              icon: Icon(_sortOrder == 'asc' ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded),
+            ),
             Chip(label: Text('Planned: ${_plannedTotal.toStringAsFixed(2)}')),
             Chip(label: Text('Actual: ${_actualTotal.toStringAsFixed(2)}')),
             Chip(label: Text('Variance: ${_variance.toStringAsFixed(2)}')),
-            OutlinedButton.icon(onPressed: _loadBudgets, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
+            OutlinedButton.icon(onPressed: _loadBudgets, icon: const Icon(Icons.refresh_rounded), label: const Text('Refresh')),
           ],
         ),
         const SizedBox(height: 16),

@@ -4,9 +4,7 @@ import '../../shared/api_registry.dart';
 import '../../shared/workspace_scope.dart';
 
 class InventoryScreen extends StatefulWidget {
-  final int? lockedSiteId;
-
-  const InventoryScreen({super.key, this.lockedSiteId});
+  const InventoryScreen({super.key});
 
   @override
   State<InventoryScreen> createState() => _InventoryScreenState();
@@ -15,39 +13,33 @@ class InventoryScreen extends StatefulWidget {
 class _InventoryScreenState extends State<InventoryScreen> {
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
   int? _siteId;
-  final TextEditingController _categoryController = TextEditingController();
   String _category = '';
   bool? _lowStock;
   String _sortBy = 'item_name';
   String _sortOrder = 'asc';
-  bool _initialized = false;
   bool _isLoading = false;
   String? _error;
-
-  bool get _siteLocked => widget.lockedSiteId != null;
 
   @override
   void initState() {
     super.initState();
-    if (_siteLocked) {
-      _siteId = widget.lockedSiteId;
-      _loadInventory();
-    }
+    _loadSites();
+  }
+
+  Future<void> _loadSites() async {
+    final workspaceSiteId = WorkspaceScope.of(context).selectedSiteId;
+    setState(() {
+      _siteId = workspaceSiteId;
+    });
+    await _loadInventory();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_siteLocked) {
-      return;
-    }
-    final workspace = WorkspaceScope.of(context);
-    if (!_initialized) {
-      _initialized = true;
-      workspace.ensureLoaded();
-    }
-    if (_siteId != workspace.selectedSiteId) {
-      _siteId = workspace.selectedSiteId;
+    final workspaceSiteId = WorkspaceScope.of(context).selectedSiteId;
+    if (workspaceSiteId != null && workspaceSiteId != _siteId) {
+      _siteId = workspaceSiteId;
       _loadInventory();
     }
   }
@@ -166,6 +158,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final workspace = WorkspaceScope.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,106 +174,92 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        Text('Simple stock view with one-tap filters for faster decisions.', style: theme.textTheme.bodyLarge),
+        Text('Inventory stays inside the selected site workspace.', style: theme.textTheme.bodyLarge),
         const SizedBox(height: 16),
+        if (workspace.selectedSite != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Chip(label: Text('Working in ${workspace.selectedSiteName}')),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).pushNamed('/site-workspace'),
+                  icon: const Icon(Icons.open_in_new_rounded),
+                  label: const Text('Open workspace'),
+                ),
+              ],
+            ),
+          ),
         Wrap(
           spacing: 12,
           runSpacing: 12,
           children: [
-            if (!_siteLocked)
-              SizedBox(
-                width: 280,
-                child: DropdownButtonFormField<int>(
-                  value: _siteId,
-                  items: WorkspaceScope.of(context)
-                      .sites
-                      .map(
-                        (site) => DropdownMenuItem<int>(
-                          value: site['id'] as int,
-                          child: Text(site['name']?.toString() ?? '-'),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _siteId = value;
-                    });
-                    WorkspaceScope.of(context).selectSite(value);
-                    _loadInventory();
-                  },
-                  decoration: const InputDecoration(labelText: 'Site'),
-                ),
-              ),
             SizedBox(
               width: 180,
               child: TextField(
-                controller: _categoryController,
-                decoration: const InputDecoration(labelText: 'Category'),
-                onSubmitted: (value) {
-                  _category = value;
+                decoration: const InputDecoration(labelText: 'Search category'),
+                onChanged: (value) {
+                  setState(() => _category = value);
                   _loadInventory();
                 },
               ),
+            ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ChoiceChip(
+                  label: const Text('All stock'),
+                  selected: _lowStock == null,
+                  onSelected: (_) {
+                    setState(() => _lowStock = null);
+                    _loadInventory();
+                  },
+                ),
+                ChoiceChip(
+                  label: const Text('Low stock'),
+                  selected: _lowStock == true,
+                  onSelected: (_) {
+                    setState(() => _lowStock = true);
+                    _loadInventory();
+                  },
+                ),
+                ChoiceChip(
+                  label: const Text('Healthy stock'),
+                  selected: _lowStock == false,
+                  onSelected: (_) {
+                    setState(() => _lowStock = false);
+                    _loadInventory();
+                  },
+                ),
+              ],
             ),
             SegmentedButton<String>(
               segments: const [
-                ButtonSegment(value: 'all', label: Text('All')),
-                ButtonSegment(value: 'low', label: Text('Low')),
-                ButtonSegment(value: 'healthy', label: Text('Healthy')),
+                ButtonSegment(value: 'item_name', label: Text('Name')),
+                ButtonSegment(value: 'category', label: Text('Category')),
+                ButtonSegment(value: 'current_quantity', label: Text('Current Qty')),
+                ButtonSegment(value: 'minimum_quantity', label: Text('Minimum Qty')),
               ],
-              selected: <String>{_lowStock == null ? 'all' : (_lowStock == true ? 'low' : 'healthy')},
+              selected: {_sortBy},
               onSelectionChanged: (selection) {
-                setState(() {
-                  _lowStock = switch (selection.first) {
-                    'low' => true,
-                    'healthy' => false,
-                    _ => null,
-                  };
-                });
+                setState(() => _sortBy = selection.first);
                 _loadInventory();
               },
             ),
-            SizedBox(
-              width: 180,
-              child: DropdownButtonFormField<String>(
-                value: _sortBy,
-                items: const [
-                  DropdownMenuItem(value: 'item_name', child: Text('Sort: Name')),
-                  DropdownMenuItem(value: 'category', child: Text('Sort: Category')),
-                  DropdownMenuItem(value: 'current_quantity', child: Text('Sort: Current Qty')),
-                  DropdownMenuItem(value: 'minimum_quantity', child: Text('Sort: Minimum Qty')),
-                ],
-                onChanged: (value) {
-                  setState(() => _sortBy = value ?? 'item_name');
-                  _loadInventory();
-                },
-                decoration: const InputDecoration(labelText: 'Sort By'),
+            IconButton(
+              onPressed: () {
+                setState(() => _sortOrder = _sortOrder == 'asc' ? 'desc' : 'asc');
+                _loadInventory();
+              },
+              icon: Icon(
+                _sortOrder == 'asc' ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
               ),
             ),
-            OutlinedButton.icon(
-              onPressed: () {
-                setState(() {
-                  _categoryController.clear();
-                  _category = '';
-                  _lowStock = null;
-                  _sortBy = 'item_name';
-                  _sortOrder = 'asc';
-                });
-                _loadInventory();
-              },
-              icon: const Icon(Icons.restart_alt_rounded),
-              label: const Text('Reset'),
-            ),
-            OutlinedButton.icon(
-              onPressed: () {
-                setState(() {
-                  _sortOrder = _sortOrder == 'asc' ? 'desc' : 'asc';
-                });
-                _loadInventory();
-              },
-              icon: Icon(_sortOrder == 'asc' ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded),
-              label: Text(_sortOrder == 'asc' ? 'Asc' : 'Desc'),
-            ),
+            OutlinedButton.icon(onPressed: _loadInventory, icon: const Icon(Icons.refresh_rounded), label: const Text('Refresh')),
           ],
         ),
         const SizedBox(height: 16),
