@@ -3,8 +3,9 @@ from flask import Blueprint, request
 from .response import created, ok
 from ..extensions.database import db
 from ..models.budget_record import BudgetRecord
+from ..models.work_assignment import WorkAssignment
 from ..services.budget_service import BudgetService
-from ..services.domain_rules import BudgetStatus
+from ..services.domain_rules import BudgetStatus, WorkStatus
 from ..services.tenancy import get_request_tenant_name
 
 
@@ -34,12 +35,23 @@ def list_budgets(site_id):
 
     planned_total = sum(float(item.planned_amount or 0) for item in items)
     actual_total = sum(float(item.actual_amount or 0) for item in items)
+    payroll_total = sum(
+        float(item.paid_amount or 0)
+        for item in WorkAssignment.query.filter(
+            WorkAssignment.site_id == site_id,
+            WorkAssignment.tenant_name == tenant_name,
+            WorkAssignment.status == WorkStatus.COMPLETED,
+        ).all()
+    )
+    remaining_budget = actual_total - payroll_total
 
     return ok(
         {
             "summary": {
                 "planned_total": planned_total,
                 "actual_total": actual_total,
+                "payroll_total": payroll_total,
+                "remaining_budget": remaining_budget,
                 "variance": actual_total - planned_total,
             },
             "items": [record.to_dict() for record in items],

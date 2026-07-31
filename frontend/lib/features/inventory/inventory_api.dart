@@ -5,6 +5,24 @@ class InventoryApi {
 
   final ApiClient client;
 
+  Future<Map<String, dynamic>> listInventory({
+    int? siteId,
+    String? category,
+    bool? lowStock,
+    String? sortBy,
+    String? sortOrder,
+  }) {
+    final query = <String, String>{
+      if (siteId != null) 'site_id': siteId.toString(),
+      if (category != null && category.isNotEmpty) 'category': category,
+      if (lowStock != null) 'low_stock': lowStock.toString(),
+      if (sortBy != null && sortBy.isNotEmpty) 'sort_by': sortBy,
+      if (sortOrder != null && sortOrder.isNotEmpty) 'sort_order': sortOrder,
+    };
+
+    return client.getJson('/api/v1/inventory', query: query);
+  }
+
   Future<Map<String, dynamic>> listSiteInventory(
     int siteId, {
     String? category,

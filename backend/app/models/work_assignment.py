@@ -16,8 +16,11 @@ class WorkAssignment(db.Model):
     description = db.Column(db.Text, nullable=True)
     priority = db.Column(db.String(40), nullable=False, default="normal")
     status = db.Column(db.Enum(WorkStatus), nullable=False, default=WorkStatus.OPEN)
+    week_start_date = db.Column(db.Date, nullable=True)
+    week_end_date = db.Column(db.Date, nullable=True)
     due_date = db.Column(db.Date, nullable=False)
     estimated_hours = db.Column(db.Numeric(8, 2), nullable=True)
+    paid_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -32,6 +35,9 @@ class WorkAssignment(db.Model):
             "description": self.description,
             "priority": self.priority,
             "status": self.status.value if self.status else None,
+            "week_start_date": self.week_start_date.isoformat() if self.week_start_date else None,
+            "week_end_date": self.week_end_date.isoformat() if self.week_end_date else None,
             "due_date": self.due_date.isoformat() if self.due_date else None,
             "estimated_hours": float(self.estimated_hours or 0),
+            "paid_amount": float(self.paid_amount or 0),
         }

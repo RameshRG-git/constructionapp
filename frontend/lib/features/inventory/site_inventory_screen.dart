@@ -1,51 +1,50 @@
 import 'package:flutter/material.dart';
 
 import '../../shared/api_registry.dart';
+import '../../shared/workspace_scope.dart';
 
-class InventoryScreen extends StatefulWidget {
-  const InventoryScreen({super.key});
+class SiteInventoryScreen extends StatefulWidget {
+  const SiteInventoryScreen({super.key});
 
   @override
-  State<InventoryScreen> createState() => _InventoryScreenState();
+  State<SiteInventoryScreen> createState() => _SiteInventoryScreenState();
 }
 
-class _InventoryScreenState extends State<InventoryScreen> {
-  List<Map<String, dynamic>> _sites = <Map<String, dynamic>>[];
+class _SiteInventoryScreenState extends State<SiteInventoryScreen> {
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
   int? _siteId;
-  String _search = '';
+  String _category = '';
+  bool? _lowStock;
   String _sortBy = 'item_name';
   String _sortOrder = 'asc';
   bool _isLoading = false;
   String? _error;
 
   @override
-  void initState() {
-    super.initState();
-    _loadSites();
-  }
-
-  Future<void> _loadSites() async {
-    final response = await ApiRegistry.sites.listSites(sortBy: 'name', sortOrder: 'asc');
-    final sites = (response['items'] as List<dynamic>? ?? <dynamic>[])
-        .whereType<Map<String, dynamic>>()
-        .toList();
-    setState(() {
-      _sites = sites;
-      _siteId = null;
-    });
-    await _loadInventory();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final siteId = WorkspaceScope.of(context).selectedSiteId;
+    if (siteId != _siteId) {
+      _siteId = siteId;
+      _loadInventory();
+    }
   }
 
   Future<void> _loadInventory() async {
+    final siteId = _siteId;
+    if (siteId == null) {
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
-      final response = await ApiRegistry.inventory.listInventory(
-        siteId: _siteId,
-        category: _search,
+      final response = await ApiRegistry.inventory.listSiteInventory(
+        siteId,
+        category: _category,
+        lowStock: _lowStock,
         sortBy: _sortBy,
         sortOrder: _sortOrder,
       );
@@ -67,20 +66,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Future<void> _showItemDialog({Map<String, dynamic>? existing}) async {
-    final targetSiteId = _siteId;
-    if (targetSiteId == null) {
+    final siteId = _siteId;
+    if (siteId == null) {
       return;
     }
 
     final itemNameController = TextEditingController(text: existing?['item_name']?.toString() ?? '');
     final categoryController = TextEditingController(text: existing?['category']?.toString() ?? '');
     final unitController = TextEditingController(text: existing?['unit_of_measure']?.toString() ?? '');
-    final currentController =
-        TextEditingController(text: existing?['current_quantity']?.toString() ?? '0');
-    final minimumController =
-        TextEditingController(text: existing?['minimum_quantity']?.toString() ?? '0');
-    final storageController =
-        TextEditingController(text: existing?['storage_location']?.toString() ?? '');
+    final currentController = TextEditingController(text: existing?['current_quantity']?.toString() ?? '0');
+    final minimumController = TextEditingController(text: existing?['minimum_quantity']?.toString() ?? '0');
+    final storageController = TextEditingController(text: existing?['storage_location']?.toString() ?? '');
 
     final saved = await showDialog<bool>(
       context: context,
@@ -124,7 +120,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   'storage_location': storageController.text.trim(),
                 };
                 if (existing == null) {
-                  await ApiRegistry.inventory.createSiteInventory(targetSiteId, payload);
+                  await ApiRegistry.inventory.createSiteInventory(siteId, payload);
                 } else {
                   await ApiRegistry.inventory.updateInventoryItem(existing['id'] as int, payload);
                 }
@@ -148,6 +144,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final workspace = WorkspaceScope.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,48 +153,58 @@ class _InventoryScreenState extends State<InventoryScreen> {
           children: [
             Expanded(child: Text('Inventory', style: theme.textTheme.headlineMedium)),
             FilledButton.icon(
-              onPressed: _siteId == null ? null : () => _showItemDialog(),
+              onPressed: workspace.selectedSiteId == null ? null : () => _showItemDialog(),
               icon: const Icon(Icons.add),
               label: const Text('Add Item'),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Text('Browse all inventory first, then narrow it with site or search filters.', style: theme.textTheme.bodyLarge),
+        Text('Inventory for the selected site.', style: theme.textTheme.bodyLarge),
         const SizedBox(height: 16),
         Wrap(
           spacing: 12,
           runSpacing: 12,
           children: [
             SizedBox(
-              width: 260,
-              child: DropdownButtonFormField<int?>(
-                value: _siteId,
-                items: [
-                  const DropdownMenuItem<int?>(value: null, child: Text('All sites')),
-                  ..._sites.map(
-                    (site) => DropdownMenuItem<int?>(
-                      value: site['id'] as int,
-                      child: Text(site['name']?.toString() ?? '-'),
-                    ),
-                  ),
-                ],
-                onChanged: (value) {
-                  setState(() => _siteId = value);
-                  _loadInventory();
-                },
-                decoration: const InputDecoration(labelText: 'Site'),
-              ),
-            ),
-            SizedBox(
               width: 180,
               child: TextField(
-                decoration: const InputDecoration(labelText: 'Search inventory'),
+                decoration: const InputDecoration(labelText: 'Search category'),
                 onChanged: (value) {
-                  setState(() => _search = value);
+                  setState(() => _category = value);
                   _loadInventory();
                 },
               ),
+            ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ChoiceChip(
+                  label: const Text('All stock'),
+                  selected: _lowStock == null,
+                  onSelected: (_) {
+                    setState(() => _lowStock = null);
+                    _loadInventory();
+                  },
+                ),
+                ChoiceChip(
+                  label: const Text('Low stock'),
+                  selected: _lowStock == true,
+                  onSelected: (_) {
+                    setState(() => _lowStock = true);
+                    _loadInventory();
+                  },
+                ),
+                ChoiceChip(
+                  label: const Text('Healthy stock'),
+                  selected: _lowStock == false,
+                  onSelected: (_) {
+                    setState(() => _lowStock = false);
+                    _loadInventory();
+                  },
+                ),
+              ],
             ),
             SegmentedButton<String>(
               segments: const [
@@ -213,14 +220,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
               },
             ),
             IconButton(
-              tooltip: _sortOrder == 'asc' ? 'Ascending' : 'Descending',
               onPressed: () {
                 setState(() => _sortOrder = _sortOrder == 'asc' ? 'desc' : 'asc');
                 _loadInventory();
               },
-              icon: Icon(
-                _sortOrder == 'asc' ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-              ),
+              icon: Icon(_sortOrder == 'asc' ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded),
             ),
             OutlinedButton.icon(onPressed: _loadInventory, icon: const Icon(Icons.refresh_rounded), label: const Text('Refresh')),
           ],
@@ -242,7 +246,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               return ListTile(
                                 title: Text(item['item_name']?.toString() ?? '-'),
                                 subtitle: Text(
-                                  '${item['site_name'] ?? 'All sites'} • ${item['category'] ?? '-'} • ${item['current_quantity']} / ${item['minimum_quantity']} ${item['unit_of_measure'] ?? ''}',
+                                  '${item['category'] ?? '-'} • ${item['current_quantity']} / ${item['minimum_quantity']} ${item['unit_of_measure'] ?? ''}',
                                 ),
                                 trailing: Wrap(
                                   spacing: 8,

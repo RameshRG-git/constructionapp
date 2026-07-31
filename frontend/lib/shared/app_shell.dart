@@ -32,7 +32,7 @@ class _AppShellState extends State<AppShell> {
     (route: '/', icon: Icons.dashboard_rounded, label: 'Dashboard'),
     (route: '/sites', icon: Icons.apartment_rounded, label: 'Sites'),
     (route: '/inventory', icon: Icons.inventory_rounded, label: 'Inventory'),
-    (route: '/budgets', icon: Icons.account_balance_wallet_rounded, label: 'Budgets'),
+    (route: '/team', icon: Icons.groups_rounded, label: 'Team'),
     (route: '/tenant-admin', icon: Icons.business_rounded, label: 'Tenant Admin'),
   ];
 

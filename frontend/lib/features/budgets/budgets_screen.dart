@@ -20,6 +20,8 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   String? _error;
   double _plannedTotal = 0;
   double _actualTotal = 0;
+  double _payrollTotal = 0;
+  double _remainingBudget = 0;
   double _variance = 0;
 
   @override
@@ -71,6 +73,8 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
         _items = items;
         _plannedTotal = (summary['planned_total'] as num?)?.toDouble() ?? 0;
         _actualTotal = (summary['actual_total'] as num?)?.toDouble() ?? 0;
+        _payrollTotal = (summary['payroll_total'] as num?)?.toDouble() ?? 0;
+        _remainingBudget = (summary['remaining_budget'] as num?)?.toDouble() ?? 0;
         _variance = (summary['variance'] as num?)?.toDouble() ?? 0;
       });
     } catch (error) {
@@ -154,7 +158,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final workspace = WorkspaceScope.of(context);
+    final remainingColor = _remainingBudget < 0 ? const Color(0xFFB91C1C) : const Color(0xFF0F4C5C);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,24 +174,33 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        Text('Budgets stay inside the selected site workspace.', style: theme.textTheme.bodyLarge),
-        const SizedBox(height: 16),
-        if (workspace.selectedSite != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                Chip(label: Text('Working in ${workspace.selectedSiteName}')),
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.of(context).pushNamed('/site-workspace'),
-                  icon: const Icon(Icons.open_in_new_rounded),
-                  label: const Text('Open workspace'),
-                ),
-              ],
-            ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [Color(0xFFEAF6F8), Color(0xFFDDECF0)]),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFCCE2E8)),
           ),
+          child: Wrap(
+            spacing: 14,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text('Remaining Budget', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                _remainingBudget.toStringAsFixed(2),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: remainingColor,
+                ),
+              ),
+              Chip(label: Text('Planned: ${_plannedTotal.toStringAsFixed(2)}')),
+              Chip(label: Text('Actual: ${_actualTotal.toStringAsFixed(2)}')),
+              Chip(label: Text('Payroll: ${_payrollTotal.toStringAsFixed(2)}')),
+            ],
+          ),
+        ),
         const SizedBox(height: 12),
         Wrap(
           runSpacing: 8,
@@ -228,8 +241,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
               },
               icon: Icon(_sortOrder == 'asc' ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded),
             ),
-            Chip(label: Text('Planned: ${_plannedTotal.toStringAsFixed(2)}')),
-            Chip(label: Text('Actual: ${_actualTotal.toStringAsFixed(2)}')),
             Chip(label: Text('Variance: ${_variance.toStringAsFixed(2)}')),
             OutlinedButton.icon(onPressed: _loadBudgets, icon: const Icon(Icons.refresh_rounded), label: const Text('Refresh')),
           ],

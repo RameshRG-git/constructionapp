@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../shared/workspace_scope.dart';
 import '../budgets/budgets_screen.dart';
-import '../inventory/inventory_screen.dart';
+import '../inventory/site_inventory_screen.dart';
 import '../workloads/workloads_screen.dart';
 
 class SiteWorkspaceScreen extends StatefulWidget {
@@ -75,30 +75,27 @@ class _SiteWorkspaceScreenState extends State<SiteWorkspaceScreen> {
     final selectedSite = workspace.selectedSite;
 
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (selectedSite != null) ...[
             _buildHeader(context, selectedSite),
             const SizedBox(height: 16),
-            const SizedBox(height: 16),
             const TabBar(
               tabs: [
-                Tab(icon: Icon(Icons.inventory_2_rounded), text: 'Inventory'),
                 Tab(icon: Icon(Icons.groups_2_rounded), text: 'Workloads'),
+                Tab(icon: Icon(Icons.inventory_2_rounded), text: 'Inventory'),
                 Tab(icon: Icon(Icons.account_balance_wallet_rounded), text: 'Budgets'),
-                Tab(icon: Icon(Icons.settings_rounded), text: 'Workspace'),
               ],
             ),
             const SizedBox(height: 12),
             const Expanded(
               child: TabBarView(
                 children: [
-                  InventoryScreen(),
                   WorkloadsScreen(),
+                  SiteInventoryScreen(),
                   BudgetsScreen(),
-                  _WorkspaceHelpPanel(),
                 ],
               ),
             ),
@@ -130,40 +127,6 @@ class _SiteWorkspaceScreenState extends State<SiteWorkspaceScreen> {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _WorkspaceHelpPanel extends StatelessWidget {
-  const _WorkspaceHelpPanel();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.tips_and_updates_rounded, size: 52, color: Color(0xFF0F4C5C)),
-                SizedBox(height: 12),
-                Text(
-                  'Workspace-first flow',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Pick a site once, then move through inventory, workloads, and budgets from one place. Filters are now easier to scan and sort choices are direct.',
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

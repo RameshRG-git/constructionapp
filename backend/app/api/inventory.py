@@ -11,15 +11,7 @@ from ..services.tenancy import get_request_tenant_name
 inventory_bp = Blueprint("inventory", __name__)
 
 
-@inventory_bp.get("/sites/<int:site_id>/inventory")
-def list_site_inventory(site_id):
-    tenant_name = get_request_tenant_name()
-    query = InventoryItem.query.filter(InventoryItem.site_id == site_id, InventoryItem.tenant_name == tenant_name)
-    category = request.args.get("category")
-    low_stock = request.args.get("low_stock")
-    sort_by = request.args.get("sort_by", "item_name")
-    sort_order = request.args.get("sort_order", "asc")
-
+def _apply_inventory_filters(query, category, low_stock, sort_by, sort_order):
     if category:
         query = query.filter(InventoryItem.category.ilike(f"%{category}%"))
 
@@ -40,6 +32,35 @@ def list_site_inventory(site_id):
     }
     sort_fn = sortable.get(sort_by, sortable["item_name"])
     items = sorted(items, key=sort_fn, reverse=sort_order == "desc")
+    return items
+
+
+@inventory_bp.get("/inventory")
+def list_inventory():
+    tenant_name = get_request_tenant_name()
+    query = InventoryItem.query.filter(InventoryItem.tenant_name == tenant_name)
+    site_id = request.args.get("site_id", type=int)
+    category = request.args.get("category")
+    low_stock = request.args.get("low_stock")
+    sort_by = request.args.get("sort_by", "item_name")
+    sort_order = request.args.get("sort_order", "asc")
+
+    if site_id is not None:
+        query = query.filter(InventoryItem.site_id == site_id)
+
+    items = _apply_inventory_filters(query, category, low_stock, sort_by, sort_order)
+    return ok({"items": [item.to_dict() for item in items]})
+
+
+@inventory_bp.get("/sites/<int:site_id>/inventory")
+def list_site_inventory(site_id):
+    tenant_name = get_request_tenant_name()
+    query = InventoryItem.query.filter(InventoryItem.site_id == site_id, InventoryItem.tenant_name == tenant_name)
+    category = request.args.get("category")
+    low_stock = request.args.get("low_stock")
+    sort_by = request.args.get("sort_by", "item_name")
+    sort_order = request.args.get("sort_order", "asc")
+    items = _apply_inventory_filters(query, category, low_stock, sort_by, sort_order)
 
     return ok({"items": [item.to_dict() for item in items]})
 

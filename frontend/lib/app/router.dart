@@ -5,6 +5,7 @@ import '../features/dashboard/dashboard_screen.dart';
 import '../features/inventory/inventory_screen.dart';
 import '../features/site_workspace/site_workspace_screen.dart';
 import '../features/sites/sites_screen.dart';
+import '../features/team/team_management_screen.dart';
 import '../features/tenants/tenant_admin_screen.dart';
 import '../features/workloads/workloads_screen.dart';
 import '../shared/app_shell.dart';
@@ -16,6 +17,7 @@ class AppRoutes {
   static const projectsLegacy = '/projects';
   static const siteWorkspace = '/site-workspace';
   static const inventory = '/inventory';
+  static const team = '/team';
   static const workloads = '/workloads';
   static const budgets = '/budgets';
   static const tenantAdmin = '/tenant-admin';
@@ -50,6 +52,11 @@ class AppRoutes {
         title: 'Inventory',
         currentRoute: inventory,
         child: InventoryScreen(),
+      ),
+      team: (_) => const AppShell(
+        title: 'Team Management',
+        currentRoute: team,
+        child: TeamManagementScreen(),
       ),
       workloads: (_) => const AppShell(
         title: 'Workloads',
