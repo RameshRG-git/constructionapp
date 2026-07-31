@@ -3,6 +3,7 @@ from flask import Blueprint, request
 from .response import created, ok
 from ..extensions.database import db
 from ..models.budget_record import BudgetRecord
+from ..models.inventory import InventoryItem
 from ..models.work_assignment import WorkAssignment
 from ..services.budget_service import BudgetService
 from ..services.domain_rules import BudgetStatus, WorkStatus
@@ -40,10 +41,18 @@ def list_budgets(site_id):
         for item in WorkAssignment.query.filter(
             WorkAssignment.site_id == site_id,
             WorkAssignment.tenant_name == tenant_name,
-            WorkAssignment.status == WorkStatus.COMPLETED,
+            WorkAssignment.status != WorkStatus.COMPLETED,
         ).all()
     )
-    remaining_budget = actual_total - payroll_total
+    inventory_expense_total = sum(
+        float(item.current_quantity or 0) * float(item.unit_cost or 0)
+        for item in InventoryItem.query.filter(
+            InventoryItem.site_id == site_id,
+            InventoryItem.tenant_name == tenant_name,
+        ).all()
+    )
+    total_expense = payroll_total + inventory_expense_total
+    remaining_budget = actual_total - total_expense
 
     return ok(
         {
@@ -51,8 +60,10 @@ def list_budgets(site_id):
                 "planned_total": planned_total,
                 "actual_total": actual_total,
                 "payroll_total": payroll_total,
+                "inventory_expense_total": inventory_expense_total,
+                "total_expense": total_expense,
                 "remaining_budget": remaining_budget,
-                "variance": actual_total - planned_total,
+                "variance": total_expense - planned_total,
             },
             "items": [record.to_dict() for record in items],
         }
@@ -117,3 +128,15 @@ def update_budget_record(budget_id):
 
     db.session.commit()
     return ok(record.to_dict())
+
+
+@budgets_bp.delete("/budgets/<int:budget_id>")
+def delete_budget_record(budget_id):
+    tenant_name = get_request_tenant_name()
+    record = BudgetRecord.query.filter(
+        BudgetRecord.id == budget_id,
+        BudgetRecord.tenant_name == tenant_name,
+    ).first_or_404()
+    db.session.delete(record)
+    db.session.commit()
+    return ok({"deleted": True, "id": budget_id})

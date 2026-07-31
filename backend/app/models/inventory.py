@@ -13,6 +13,7 @@ class InventoryItem(db.Model):
     item_name = db.Column(db.String(255), nullable=False)
     category = db.Column(db.String(120), nullable=False)
     unit_of_measure = db.Column(db.String(40), nullable=False)
+    unit_cost = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     current_quantity = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     minimum_quantity = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     storage_location = db.Column(db.String(255), nullable=True)
@@ -27,8 +28,10 @@ class InventoryItem(db.Model):
             "item_name": self.item_name,
             "category": self.category,
             "unit_of_measure": self.unit_of_measure,
+            "unit_cost": float(self.unit_cost or 0),
             "current_quantity": float(self.current_quantity or 0),
             "minimum_quantity": float(self.minimum_quantity or 0),
+            "inventory_value": float(self.current_quantity or 0) * float(self.unit_cost or 0),
             "storage_location": self.storage_location,
             "low_stock": float(self.current_quantity or 0) < float(self.minimum_quantity or 0),
         }

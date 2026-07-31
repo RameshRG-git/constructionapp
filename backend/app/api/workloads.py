@@ -54,7 +54,7 @@ def list_workloads(site_id):
     week_start = request.args.get("week_start")
     sort_by = request.args.get("sort_by", "due_date")
     sort_order = request.args.get("sort_order", "asc")
-    has_history_query = bool(search or on_date or from_date or to_date or week_start or assignee)
+    has_history_query = bool(status or search or on_date or from_date or to_date or week_start or assignee)
 
     if status:
         query = query.filter(WorkAssignment.status == WorkStatus(status))
@@ -174,3 +174,15 @@ def update_workload(assignment_id):
 
     db.session.commit()
     return ok(assignment.to_dict())
+
+
+@workloads_bp.delete("/assignments/<int:assignment_id>")
+def delete_workload(assignment_id):
+    tenant_name = get_request_tenant_name()
+    assignment = WorkAssignment.query.filter(
+        WorkAssignment.id == assignment_id,
+        WorkAssignment.tenant_name == tenant_name,
+    ).first_or_404()
+    db.session.delete(assignment)
+    db.session.commit()
+    return ok({"deleted": True, "id": assignment_id})

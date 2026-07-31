@@ -75,6 +75,7 @@ def create_inventory_item(site_id):
         item_name=payload["item_name"],
         category=payload["category"],
         unit_of_measure=payload["unit_of_measure"],
+        unit_cost=payload.get("unit_cost", 0),
         current_quantity=payload.get("current_quantity", 0),
         minimum_quantity=payload.get("minimum_quantity", 0),
         storage_location=payload.get("storage_location"),
@@ -92,11 +93,20 @@ def update_inventory_item(item_id):
     for key in ["item_name", "category", "unit_of_measure", "storage_location"]:
         if key in payload:
             setattr(item, key, payload[key])
-    for key in ["current_quantity", "minimum_quantity"]:
+    for key in ["unit_cost", "current_quantity", "minimum_quantity"]:
         if key in payload:
             setattr(item, key, payload[key])
     db.session.commit()
     return ok(item.to_dict())
+
+
+@inventory_bp.delete("/inventory/<int:item_id>")
+def delete_inventory_item(item_id):
+    tenant_name = get_request_tenant_name()
+    item = InventoryItem.query.filter(InventoryItem.id == item_id, InventoryItem.tenant_name == tenant_name).first_or_404()
+    db.session.delete(item)
+    db.session.commit()
+    return ok({"deleted": True, "id": item_id})
 
 
 @inventory_bp.post("/inventory/<int:item_id>/transactions")
