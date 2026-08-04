@@ -18,9 +18,10 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   String _sortOrder = 'desc';
   bool _isLoading = false;
   String? _error;
-  double _plannedTotal = 0;
   double _actualTotal = 0;
   double _payrollTotal = 0;
+  double _inventoryExpenseTotal = 0;
+  double _totalExpense = 0;
   double _remainingBudget = 0;
   double _variance = 0;
 
@@ -71,9 +72,10 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
       final summary = (response['summary'] as Map<String, dynamic>? ?? <String, dynamic>{});
       setState(() {
         _items = items;
-        _plannedTotal = (summary['planned_total'] as num?)?.toDouble() ?? 0;
         _actualTotal = (summary['actual_total'] as num?)?.toDouble() ?? 0;
         _payrollTotal = (summary['payroll_total'] as num?)?.toDouble() ?? 0;
+        _inventoryExpenseTotal = (summary['inventory_expense_total'] as num?)?.toDouble() ?? 0;
+        _totalExpense = (summary['total_expense'] as num?)?.toDouble() ?? 0;
         _remainingBudget = (summary['remaining_budget'] as num?)?.toDouble() ?? 0;
         _variance = (summary['variance'] as num?)?.toDouble() ?? 0;
       });
@@ -94,7 +96,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     }
 
     final categoryController = TextEditingController(text: existing?['category_name']?.toString() ?? '');
-    final plannedController = TextEditingController(text: existing?['planned_amount']?.toString() ?? '0');
     final actualController = TextEditingController(text: existing?['actual_amount']?.toString() ?? '0');
 
     final saved = await showDialog<bool>(
@@ -113,11 +114,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  controller: plannedController,
-                  decoration: const InputDecoration(labelText: 'Planned Amount'),
-                ),
-                const SizedBox(height: 16),
-                TextField(
                   controller: actualController,
                   decoration: const InputDecoration(labelText: 'Actual Amount'),
                 ),
@@ -128,10 +124,12 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
             TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
             FilledButton(
               onPressed: () async {
+                final actualAmount = double.tryParse(actualController.text.trim()) ?? 0;
                 final payload = <String, dynamic>{
                   'category_name': categoryController.text.trim(),
-                  'planned_amount': double.tryParse(plannedController.text.trim()) ?? 0,
-                  'actual_amount': double.tryParse(actualController.text.trim()) ?? 0,
+                  // Keep planned aligned with actual while planned is hidden from the UI.
+                  'planned_amount': actualAmount,
+                  'actual_amount': actualAmount,
                 };
                 if (existing == null) {
                   await ApiRegistry.budgets.createBudget(_siteId!, payload);
@@ -152,6 +150,45 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
 
     if (saved == true) {
       await _loadBudgets();
+    }
+  }
+
+  Future<void> _deleteBudget(Map<String, dynamic> item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete Budget'),
+          content: Text('Delete ${item['category_name'] ?? 'this budget'}? This action cannot be undone.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB91C1C)),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    try {
+      await ApiRegistry.budgets.deleteBudget(item['id'] as int);
+      if (!mounted) {
+        return;
+      }
+      await _loadBudgets();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Delete failed: $error')),
+      );
     }
   }
 
@@ -195,9 +232,10 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                   color: remainingColor,
                 ),
               ),
-              Chip(label: Text('Planned: ${_plannedTotal.toStringAsFixed(2)}')),
               Chip(label: Text('Actual: ${_actualTotal.toStringAsFixed(2)}')),
-              Chip(label: Text('Payroll: ${_payrollTotal.toStringAsFixed(2)}')),
+              Chip(label: Text('Workload Expense: ${_payrollTotal.toStringAsFixed(2)}')),
+              Chip(label: Text('Inventory Expense: ${_inventoryExpenseTotal.toStringAsFixed(2)}')),
+              Chip(label: Text('Total Expense: ${_totalExpense.toStringAsFixed(2)}')),
             ],
           ),
         ),
@@ -271,6 +309,10 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                     IconButton(
                                       icon: const Icon(Icons.edit_outlined),
                                       onPressed: () => _showBudgetDialog(existing: item),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline),
+                                      onPressed: () => _deleteBudget(item),
                                     ),
                                   ],
                                 ),

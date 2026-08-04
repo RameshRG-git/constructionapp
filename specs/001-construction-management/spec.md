@@ -4,7 +4,9 @@
 
 **Created**: 2026-05-18
 
-**Status**: Draft
+**Last Updated**: 2026-07-31
+
+**Status**: Implemented and Iterating
 
 **Input**: User description: "build an construction application that helps to manage the construction sites, manage inventory, manage work loads, budgetting etc.,"
 
@@ -64,7 +66,27 @@ visible in the site summary.
 1. **Given** a site with assigned team members, **When** work is allocated, **Then** the workload
    summary shows the assignment.
 2. **Given** a site budget and actual spend, **When** spending changes, **Then** the budget view
-   shows remaining and over-budget amounts.
+  shows remaining, payroll impact, and over-budget amounts.
+
+---
+
+### User Story 4 - Team and Role Management (Priority: P2)
+
+A tenant administrator can manage reusable role/day-rate definitions and team members so
+workload planning can use standardized pay rates.
+
+**Why this priority**: Team and pay-rate consistency is needed for reliable payroll deduction and
+workload cost projection.
+
+**Independent Test**: Add a role, add a team member with that role, and create a workload that
+uses the same role to confirm paid amount calculation is consistent.
+
+**Acceptance Scenarios**:
+
+1. **Given** role/day-rate catalog access, **When** an admin creates or updates roles,
+  **Then** those roles are available in member and workload flows.
+2. **Given** a team member with a title, **When** workload is assigned by day or date range,
+  **Then** projected payroll is calculated from the mapped role/day-rate.
 
 ---
 
@@ -74,6 +96,8 @@ visible in the site summary.
 - How does the system handle negative stock, missing cost data, or budget entries that exceed the
   planned amount?
 - What happens when two users update the same site or stock record close together?
+- How are records isolated when two tenants use the same site names or role titles?
+- What happens when users try to query only current workloads versus historical workloads?
 
 ## Requirements *(mandatory)*
 
@@ -83,61 +107,67 @@ visible in the site summary.
 - **FR-002**: The system MUST store core site details including site name, site location, owner,
   planned start date, planned end date, and status.
 - **FR-003**: The system MUST use consistent site statuses of planned, active, on hold, and closed.
-- **FR-004**: The system MUST allow users to record inventory items with item name, category, unit of
+- **FR-004**: The system MUST isolate all operational records by tenant and resolve tenant context
+  from request context with a default tenant fallback.
+- **FR-005**: The system MUST allow users to record inventory items with item name, category, unit of
   measure, current quantity, and minimum stock level.
-- **FR-005**: The system MUST allow users to adjust inventory quantities when materials are received,
+- **FR-006**: The system MUST allow users to list inventory at tenant-wide level and optionally filter
+  by site.
+- **FR-007**: The system MUST allow users to adjust inventory quantities when materials are received,
   issued, or corrected.
-- **FR-006**: The system MUST flag inventory items that fall below their minimum stock level and show the
+- **FR-008**: The system MUST flag inventory items that fall below their minimum stock level and show the
   shortage amount.
-- **FR-007**: The system MUST allow users to assign work to named people or crews within a site with
-  a due date and work status.
-- **FR-008**: The system MUST show workload summaries so users can see assigned work by person or crew
-  and by site.
-- **FR-009**: The system MUST allow users to record planned budget amounts and actual spending for a
-  site, and capture budget category when needed.
-- **FR-010**: The system MUST show remaining budget, spent-to-date, and over-budget conditions for each
-  site.
-- **FR-011**: The system MUST preserve changes made to sites, inventory, work assignments, and budget
-  records.
-- **FR-012**: The system MUST show clear error feedback when a requested action cannot be completed.
-- **FR-013**: The system MUST support role-based access for site management, site operations, warehouse
-  control, and finance review.
-- **FR-014**: The system MUST prevent users from changing records outside the permissions of their role.
-- **FR-015**: The system MUST provide a searchable view of active sites, inventory items, assignments,
-  and budget summaries.
-- **FR-016**: The system MUST keep a site summary that combines status, inventory risk, workload, and
-  budget health in one place.
+- **FR-009**: The system MUST allow users to assign workloads by day or date range and store the
+  effective period start/end dates.
+- **FR-010**: The system MUST auto-complete workloads whose period has already ended.
+- **FR-011**: The system MUST support current-workload default views and searchable history views.
+- **FR-012**: The system MUST allow users to record planned budget amounts and actual spending for a
+  site and capture budget category.
+- **FR-013**: The system MUST calculate budget summary values including planned total, actual total,
+  payroll total, remaining budget, and variance.
+- **FR-014**: The system MUST include Team Management with member CRUD-lite (create/list/update)
+  and role/day-rate catalog management.
+- **FR-015**: The system MUST seed default role/day-rate entries for a tenant when none exist.
+- **FR-016**: The system MUST support delete operations for workload records, inventory records,
+  and budget records.
+- **FR-017**: The system MUST preserve changes made to sites, inventory, work assignments, budget
+  records, team members, and team roles.
+- **FR-018**: The system MUST show clear error feedback when a requested action cannot be completed.
+- **FR-019**: The system MUST provide searchable views for sites, inventory, assignments, and team
+  members.
+- **FR-020**: The system MUST keep a site summary that combines status, inventory risk, workload,
+  and budget variance in one place.
 
 ### Key Entities *(include if feature involves data)*
 
+- **Tenant**: The organization context that owns and isolates all business records.
 - **Site**: A construction job being tracked, including name, location, status, dates, ownership, and
   financial summary.
 - **Inventory Item**: A material or supply tracked for availability, usage, minimum quantity, and related
   site or storage location.
-- **Work Assignment**: A unit of work allocated to a person or crew with a site, priority, and status.
+- **Work Assignment**: A unit of work allocated to a person with a site, period, and status.
 - **Budget Record**: A planned and actual cost view for a site, including remaining budget and variance.
-- **User Role**: A permission grouping that determines which construction operations a user can perform.
+- **Team Member**: A worker profile with job title and daily pay settings.
+- **Team Role Rate**: A reusable title/day-rate definition used by team and workload workflows.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
 - **SC-001**: Users can create a new site and see it reflected in the site list within 1 minute.
-- **SC-002**: At least 90% of site, inventory, workload, and budget updates can be completed without
-  needing support assistance.
-- **SC-003**: Users can identify low-stock items and over-budget sites from their summaries without
-  manual calculation.
-- **SC-004**: A typical site manager can complete the core tasks of creating a site, checking stock,
-  assigning work, and reviewing budget status in one session.
-- **SC-005**: The application supports day-to-day use by active construction teams without preventing
-  concurrent site, inventory, and budget review workflows.
+- **SC-002**: At least 90% of site, inventory, workload, budget, and team updates can be completed
+  without support assistance.
+- **SC-003**: Users can identify low-stock items and budget pressure from payroll directly from
+  summary views without manual calculation.
+- **SC-004**: A typical site manager can create a site, manage inventory, assign workload by day/date
+  range, and review budget in one session.
+- **SC-005**: Tenant-isolated data views remain consistent when switching tenant context.
+- **SC-006**: Users can delete unwanted workload, inventory, and budget rows with confirmation.
 
 ## Assumptions
 
-- The first release serves a single organization or operating unit rather than multi-tenant enterprise use.
 - Users are authenticated before accessing operational data.
 - Mobile browser support is expected, but native mobile apps are out of scope.
-- Notifications, procurement automation, payroll, and detailed accounting integrations are out of scope
-  for the initial version.
-- The application focuses on operational tracking rather than advanced planning, forecasting, or resource
-  optimization.
+- Notifications, procurement automation, and detailed accounting integrations remain out of scope.
+- Lightweight payroll deduction at workload level is in scope; full payroll processing is out of scope.
+- The application focuses on operational tracking rather than advanced forecasting or optimization.

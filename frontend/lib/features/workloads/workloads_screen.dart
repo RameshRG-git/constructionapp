@@ -438,6 +438,45 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
     }
   }
 
+  Future<void> _deleteWorkload(Map<String, dynamic> item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete Workload'),
+          content: Text('Delete ${item['title'] ?? 'this workload'}? This action cannot be undone.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB91C1C)),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    try {
+      await ApiRegistry.workloads.deleteWorkload(item['id'] as int);
+      if (!mounted) {
+        return;
+      }
+      await _loadWorkloads();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Delete failed: $error')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -608,6 +647,10 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
                                     IconButton(
                                       icon: const Icon(Icons.edit_outlined),
                                       onPressed: () => _showAssignmentDialog(existing: item),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline),
+                                      onPressed: () => _deleteWorkload(item),
                                     ),
                                   ],
                                 ),

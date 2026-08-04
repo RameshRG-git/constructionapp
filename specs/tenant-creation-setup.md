@@ -33,6 +33,12 @@ export DATABASE_URL=postgresql+psycopg://constructionapp:constructionapp@localho
 - `POST /api/v1/tenants` create a tenant
 - `GET /api/v1/tenants/current` get current tenant context
 
+Related tenant-scoped operational APIs:
+- `GET /api/v1/sites`
+- `GET /api/v1/inventory` (optional `site_id` filter)
+- `GET /api/v1/team-members`
+- `GET /api/v1/team-roles`
+
 Example create payload:
 
 ```json
@@ -64,3 +70,4 @@ Capabilities:
 - Tenant schema is created on tenant creation for PostgreSQL deployments.
 - The frontend sends tenant context in every API call with `X-Tenant`.
 - To apply per-tenant branding, configure `logo_url`, `primary_color`, and `secondary_color`.
+- Team role/day-rate defaults are auto-seeded for a tenant the first time role catalog is requested.

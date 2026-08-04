@@ -13,10 +13,11 @@
 - Alternatives considered: React, Vue, native mobile apps.
 
 ## Decision 3: Charting Approach
-- Decision: Use Chart.js for reporting views and feed it with API aggregation endpoints.
-- Rationale: The user requested Chart.js, and browser-based charts are a good fit for dashboard-style
-  summaries such as budget variance and inventory risk.
-- Alternatives considered: Flutter-only chart packages, server-rendered charts.
+- Decision: Keep reporting focused on API-driven summary cards and list-based insights in the current
+  release.
+- Rationale: The operational workflows prioritized site, inventory, workload, budget, and team actions;
+  chart integrations can be added later without changing core domain contracts.
+- Alternatives considered: Chart.js integration, Flutter chart packages.
 
 ## Decision 4: Persistence Model
 - Decision: Use PostgreSQL as the single system of record.
@@ -31,14 +32,27 @@
   protected without exposing credentials in the browser.
 - Alternatives considered: Local token storage, unauthenticated access.
 
-## Decision 6: Testing Strategy
+## Decision 6: Tenant Isolation Strategy
+- Decision: Use tenant-aware row isolation via `tenant_name` on domain models, resolved from `X-Tenant`
+  request header with a default fallback tenant.
+- Rationale: This keeps the architecture simple while providing practical multi-tenant separation and
+  tenant-switch capability.
+- Alternatives considered: single-tenant-only design, schema-per-tenant-only runtime routing.
+
+## Decision 7: Team and Payroll Input Model
+- Decision: Introduce a tenant-managed team member registry plus a role/day-rate catalog, then compute
+  assignment payroll from selected role and assignment period length.
+- Rationale: Users requested role standardization and budget deduction visibility tied to workload entry.
+- Alternatives considered: free-text-only assignees without role rates, external payroll integration.
+
+## Decision 8: Testing Strategy
 - Decision: Use PyTest for backend coverage and Flutter tests for browser flows.
 - Rationale: This gives direct coverage over the critical CRUD and reporting paths while keeping the
   validation stack aligned with the requested technology choices.
 - Alternatives considered: End-to-end-only testing, backend-only testing.
 
-## Decision 7: CI/CD
-- Decision: Use GitLab CI to run backend tests, frontend tests, and build checks.
-- Rationale: The user specified GitLab CI, and a staged pipeline keeps the app shippable with minimal
-  process overhead.
-- Alternatives considered: GitHub Actions, ad hoc local checks.
+## Decision 9: Deployment and Operations
+- Decision: Standardize operational runbook steps around Alembic migrations, systemd backend restart,
+  Flutter web release build, and rsync-based static deploy.
+- Rationale: This matches the deployed environment and reduced repeated migration/runtime drift issues.
+- Alternatives considered: ad hoc process kills/manual static copies.

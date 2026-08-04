@@ -9,7 +9,7 @@
 ## Local Setup
 1. Clone the repository and switch to the feature branch.
 2. Create a PostgreSQL database for the application.
-3. Set backend environment variables for database connectivity and secret configuration.
+3. Set backend environment variables for database connectivity, Flask app factory, and default tenant.
 4. Install backend and frontend dependencies.
 
 ## Backend
@@ -24,32 +24,45 @@ Example commands once the scaffold exists:
 cd backend
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e .[dev]
+export FLASK_APP=app:create_app
+export DEFAULT_TENANT=kaniskahomes
 flask db upgrade
-flask run
+flask run --host 127.0.0.1 --port 5000
 pytest
 ```
 
 ## Frontend
 1. Install Flutter dependencies.
 2. Launch the Flutter web client in Chrome or another supported browser.
-3. Verify site dashboards, inventory summaries, workload views, and budget charts load correctly.
+3. Verify sites, inventory, workloads, budgets, and team management screens load correctly.
 
 Example commands once the scaffold exists:
 ```bash
 cd frontend
 flutter pub get
 flutter run -d chrome
+flutter analyze
 flutter test
 ```
 
-## Reporting Views
-- Dashboard and reporting pages consume aggregated API data.
-- Chart.js renders site health, inventory risk, workload spread, and budget variance charts.
+## Tenant Context
+- All API calls are tenant-scoped through `X-Tenant`.
+- If not supplied, backend falls back to `DEFAULT_TENANT` (default `kaniskahomes`).
+- Use the tenant admin workflow to create additional tenant workspaces.
+
+## Functional Smoke Checklist
+- Create and update a site.
+- Add inventory item, edit it, and delete it.
+- Add workload for one day and for a date range; verify older periods auto-complete.
+- Add budget record, verify summary totals (planned/actual/payroll/remaining), then delete a record.
+- Add team member and role/day-rate entry.
 
 ## CI/CD
-- GitLab CI should run backend tests, frontend tests, and build checks on every merge request.
-- Production releases should be based on a passing pipeline and a reviewed merge commit.
+- Run backend and frontend checks before deployment:
+	- backend: `pytest`
+	- frontend: `flutter analyze` and `flutter test`
+- Production releases should be based on passing checks and reviewed commits.
 
 ## Post-Change Runbook
 
@@ -136,4 +149,7 @@ cd /home/ubuntu/projects/constructionapp/frontend
 /home/ubuntu/flutter/bin/flutter pub get
 /home/ubuntu/flutter/bin/flutter build web --release
 sudo rsync -av --delete build/web/ /var/www/kaniskahomes/
+
+# optional frontend health check
+curl -I http://127.0.0.1:8080
 ```

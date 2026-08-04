@@ -2,6 +2,11 @@
 
 This roadmap follows the existing implementation sequence for the construction management feature.
 
+## Current Status
+
+- Phases 1 through 5 are delivered.
+- Post-MVP tenant/team/workload-budget enhancements are delivered and in active use.
+
 ## Phase 1: Foundation
 
 - Finalize backend app factory, database wiring, and configuration.
@@ -24,10 +29,22 @@ This roadmap follows the existing implementation sequence for the construction m
 ## Phase 4: Workload and Budget Tracking
 
 - Deliver work assignment creation and workload summaries.
-- Deliver budget records, variance calculations, and over-budget indicators.
-- Integrate reporting charts in dashboard flows.
+- Extend workloads with day/date-range tracking and historical filtering.
+- Deliver budget records, payroll-aware summary calculations, and over-budget indicators.
 
-## Phase 5: Polish and Hardening
+## Phase 5: Team Management and Tenant Operations
+
+- Deliver Team Management page with member registry.
+- Deliver role/day-rate catalog with tenant defaults.
+- Deliver tenant administration and tenant-aware request routing.
+
+## Phase 6: CRUD Completion and UX Simplification
+
+- Add delete actions for workload, inventory, and budget records.
+- Simplify global navigation and workspace controls.
+- Keep global inventory and site inventory usage intentionally distinct.
+
+## Phase 7: Polish and Hardening
 
 - Improve logging, traceability, and operational error messages.
 - Tighten authorization checks across all mutation endpoints.
@@ -46,4 +63,6 @@ This roadmap follows the existing implementation sequence for the construction m
 - M2: Site Oversight production-ready (MVP checkpoint).
 - M3: Inventory workflows production-ready.
 - M4: Workload and budget workflows production-ready.
-- M5: Cross-cutting polish complete and release candidate prepared.
+- M5: Team and tenant operations production-ready.
+- M6: Delete and UX simplification complete.
+- M7: Cross-cutting polish complete and release candidate prepared.

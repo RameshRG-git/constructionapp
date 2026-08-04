@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'api_registry.dart';
-import 'workspace_scope.dart';
 
 class AppShell extends StatefulWidget {
   final String title;
@@ -58,8 +57,6 @@ class _AppShellState extends State<AppShell> {
             final tenant = snapshot.data ?? const <String, dynamic>{};
             final tenantName = tenant['name']?.toString() ?? 'KaniskaHomes';
             final logoUrl = tenant['logo_url']?.toString();
-            final workspace = WorkspaceScope.of(context);
-            final selectedSite = workspace.selectedSite;
 
             return Scaffold(
               body: Container(
@@ -96,29 +93,6 @@ class _AppShellState extends State<AppShell> {
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: -0.3,
                                 color: Color(0xFF0F172A),
-                              ),
-                            ),
-                            const Spacer(),
-                            if (selectedSite != null) ...[
-                              ActionChip(
-                                avatar: const Icon(Icons.apartment_rounded, size: 18),
-                                label: Text('Workspace: ${selectedSite['name']?.toString() ?? ''}'),
-                                onPressed: () => Navigator.of(context).pushNamed('/site-workspace'),
-                              ),
-                              const SizedBox(width: 10),
-                            ],
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEAF2F4),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                widget.title,
-                                style: const TextStyle(
-                                  color: Color(0xFF0F4C5C),
-                                  fontWeight: FontWeight.w700,
-                                ),
                               ),
                             ),
                           ],

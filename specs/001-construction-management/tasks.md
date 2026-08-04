@@ -98,7 +98,7 @@
 - [x] T030 [US3] Extend the site summary aggregation to include workload and budget metrics in backend/app/api/site_summary.py
 - [x] T031 [P] [US3] Build the Flutter workload screens in frontend/lib/features/workloads/
 - [x] T032 [P] [US3] Build the Flutter budget screens and reporting charts in frontend/lib/features/budgets/
-- [x] T033 [US3] Integrate Chart.js-driven reporting views with summary data in frontend/lib/features/dashboard/
+- [x] T033 [US3] Integrate summary reporting views with aggregated API data in frontend/lib/features/dashboard/
 - [x] T034 [US3] Wire workload and budget screens to the API client in frontend/lib/features/workloads/workload_api.dart and frontend/lib/features/budgets/budget_api.dart
 
 **Checkpoint**: All user stories should now be independently functional
@@ -114,6 +114,26 @@
 - [x] T037 Review and tighten authorization checks across backend/app/api/ and backend/app/services/
 - [x] T038 Validate quickstart steps against the implemented stack in specs/001-construction-management/quickstart.md
 - [x] T039 Confirm the GitLab CI pipeline covers backend tests, frontend tests, and build checks in .gitlab-ci.yml
+
+---
+
+## Phase 7: Post-MVP Enhancements (Delivered)
+
+**Purpose**: Add tenant-first workflows, team operations, workload period controls, and final CRUD completeness.
+
+- [x] T040 Add tenant model, tenant APIs, and request-tenant resolution in backend/app/models/tenant.py, backend/app/api/tenants.py, and backend/app/services/tenancy.py
+- [x] T041 Seed and enforce default tenant behavior (`kaniskahomes`) across backend and frontend API client context
+- [x] T042 Rename project domain artifacts to site domain artifacts across API, models, and frontend routes/screens
+- [x] T043 Add global tenant-wide inventory listing with optional site filter in backend/app/api/inventory.py and frontend/lib/features/inventory/inventory_screen.dart
+- [x] T044 Add site-scoped inventory workspace screen in frontend/lib/features/inventory/site_inventory_screen.dart
+- [x] T045 Introduce team member model/service/API in backend/app/models/team_member.py, backend/app/services/team_member_service.py, backend/app/api/team_members.py
+- [x] T046 Introduce team role/day-rate model/API with tenant default role seeding in backend/app/models/team_role_rate.py and backend/app/api/team_roles.py
+- [x] T047 Add Team Management UI with members and role catalog tabs in frontend/lib/features/team/team_management_screen.dart and route wiring
+- [x] T048 Extend workloads to support period start/end dates, auto-complete past workloads, and history filters in backend/app/models/work_assignment.py and backend/app/api/workloads.py
+- [x] T049 Update workload UI for day vs date-range entry, role-based pay projection, and current-only default listing in frontend/lib/features/workloads/workloads_screen.dart
+- [x] T050 Extend budget summary with payroll totals and remaining budget calculation in backend/app/api/budgets.py and frontend/lib/features/budgets/budgets_screen.dart
+- [x] T051 Add delete endpoints for assignments, inventory items, and budget records in backend/app/api/workloads.py, backend/app/api/inventory.py, and backend/app/api/budgets.py
+- [x] T052 Add delete actions with confirmation dialogs in frontend/lib/features/workloads/workloads_screen.dart, frontend/lib/features/inventory/inventory_screen.dart, frontend/lib/features/inventory/site_inventory_screen.dart, and frontend/lib/features/budgets/budgets_screen.dart
 
 ---
 

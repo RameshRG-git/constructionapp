@@ -39,4 +39,7 @@ class WorkloadApi {
 
   Future<Map<String, dynamic>> updateWorkload(int assignmentId, Map<String, dynamic> payload) =>
       client.patchJson('/api/v1/assignments/$assignmentId', payload);
+
+    Future<Map<String, dynamic>> deleteWorkload(int assignmentId) =>
+      client.deleteJson('/api/v1/assignments/$assignmentId');
 }

@@ -50,6 +50,14 @@ class ApiClient {
     return _decodeJsonMap(response);
   }
 
+  Future<Map<String, dynamic>> deleteJson(String path) async {
+    final response = await _client.delete(
+      _buildUri(path),
+      headers: {'X-Tenant': _tenantName},
+    );
+    return _decodeJsonMap(response);
+  }
+
   Uri _buildUri(String path, [Map<String, String>? query]) {
     final cleanedBase = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
     final cleanedPath = path.startsWith('/') ? path : '/$path';
@@ -66,6 +74,10 @@ class ApiClient {
   Map<String, dynamic> _decodeJsonMap(http.Response response) {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw ApiException(response.statusCode, response.body);
+    }
+
+    if (response.body.trim().isEmpty) {
+      return <String, dynamic>{};
     }
 
     final decoded = jsonDecode(response.body);

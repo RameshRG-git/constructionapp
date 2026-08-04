@@ -74,6 +74,7 @@ class _SiteInventoryScreenState extends State<SiteInventoryScreen> {
     final itemNameController = TextEditingController(text: existing?['item_name']?.toString() ?? '');
     final categoryController = TextEditingController(text: existing?['category']?.toString() ?? '');
     final unitController = TextEditingController(text: existing?['unit_of_measure']?.toString() ?? '');
+    final unitCostController = TextEditingController(text: existing?['unit_cost']?.toString() ?? '0');
     final currentController = TextEditingController(text: existing?['current_quantity']?.toString() ?? '0');
     final minimumController = TextEditingController(text: existing?['minimum_quantity']?.toString() ?? '0');
     final storageController = TextEditingController(text: existing?['storage_location']?.toString() ?? '');
@@ -95,6 +96,8 @@ class _SiteInventoryScreenState extends State<SiteInventoryScreen> {
                   const SizedBox(height: 16),
                   TextField(controller: unitController, decoration: const InputDecoration(labelText: 'Unit of Measure')),
                   const SizedBox(height: 16),
+                  TextField(controller: unitCostController, decoration: const InputDecoration(labelText: 'Unit Cost')),
+                  const SizedBox(height: 16),
                   TextField(controller: currentController, decoration: const InputDecoration(labelText: 'Current Quantity')),
                   const SizedBox(height: 16),
                   TextField(controller: minimumController, decoration: const InputDecoration(labelText: 'Minimum Quantity')),
@@ -115,6 +118,7 @@ class _SiteInventoryScreenState extends State<SiteInventoryScreen> {
                   'item_name': itemNameController.text.trim(),
                   'category': categoryController.text.trim(),
                   'unit_of_measure': unitController.text.trim(),
+                  'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
                   'current_quantity': double.tryParse(currentController.text.trim()) ?? 0,
                   'minimum_quantity': double.tryParse(minimumController.text.trim()) ?? 0,
                   'storage_location': storageController.text.trim(),
@@ -138,6 +142,45 @@ class _SiteInventoryScreenState extends State<SiteInventoryScreen> {
 
     if (saved == true) {
       await _loadInventory();
+    }
+  }
+
+  Future<void> _deleteInventoryItem(Map<String, dynamic> item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete Item'),
+          content: Text('Delete ${item['item_name'] ?? 'this item'}? This action cannot be undone.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB91C1C)),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    try {
+      await ApiRegistry.inventory.deleteInventoryItem(item['id'] as int);
+      if (!mounted) {
+        return;
+      }
+      await _loadInventory();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Delete failed: $error')),
+      );
     }
   }
 
@@ -246,7 +289,7 @@ class _SiteInventoryScreenState extends State<SiteInventoryScreen> {
                               return ListTile(
                                 title: Text(item['item_name']?.toString() ?? '-'),
                                 subtitle: Text(
-                                  '${item['category'] ?? '-'} • ${item['current_quantity']} / ${item['minimum_quantity']} ${item['unit_of_measure'] ?? ''}',
+                                  '${item['category'] ?? '-'} • Cost ${item['unit_cost'] ?? 0} • Value ${item['inventory_value'] ?? 0} • ${item['current_quantity']} / ${item['minimum_quantity']} ${item['unit_of_measure'] ?? ''}',
                                 ),
                                 trailing: Wrap(
                                   spacing: 8,
@@ -255,6 +298,10 @@ class _SiteInventoryScreenState extends State<SiteInventoryScreen> {
                                     IconButton(
                                       onPressed: () => _showItemDialog(existing: item),
                                       icon: const Icon(Icons.edit_outlined),
+                                    ),
+                                    IconButton(
+                                      onPressed: () => _deleteInventoryItem(item),
+                                      icon: const Icon(Icons.delete_outline),
                                     ),
                                   ],
                                 ),

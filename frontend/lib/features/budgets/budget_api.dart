@@ -25,4 +25,7 @@ class BudgetApi {
 
   Future<Map<String, dynamic>> updateBudget(int budgetId, Map<String, dynamic> payload) =>
       client.patchJson('/api/v1/budgets/$budgetId', payload);
+
+    Future<Map<String, dynamic>> deleteBudget(int budgetId) =>
+      client.deleteJson('/api/v1/budgets/$budgetId');
 }

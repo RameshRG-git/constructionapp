@@ -45,4 +45,7 @@ class InventoryApi {
 
   Future<Map<String, dynamic>> updateInventoryItem(int itemId, Map<String, dynamic> payload) =>
       client.patchJson('/api/v1/inventory/$itemId', payload);
+
+    Future<Map<String, dynamic>> deleteInventoryItem(int itemId) =>
+      client.deleteJson('/api/v1/inventory/$itemId');
 }

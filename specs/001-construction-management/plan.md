@@ -2,6 +2,8 @@
 
 **Branch**: `001-construction-management` | **Date**: 2026-05-18 | **Spec**: [spec.md](spec.md)
 
+**Last Updated**: 2026-07-31
+
 **Input**: Feature specification from `/specs/001-construction-management/spec.md`
 
 **Note**: This plan follows the spec-kit workflow for the construction management feature.
@@ -9,21 +11,22 @@
 ## Summary
 
 Build a browser-based construction operations system with a Flask backend and a Flutter web
-frontend. The MVP covers site tracking, inventory control, work allocation, and budget
-monitoring, with Chart.js-based reporting views fed by API aggregation endpoints. Use PostgreSQL
-for persistence, PyTest for backend verification, and GitLab CI for automated checks.
+frontend. The delivered scope now includes tenant-aware data isolation, site tracking, global and
+site inventory views, workload period tracking (day/date-range), budget monitoring with payroll
+impact, team management, and role/day-rate catalog management. Use PostgreSQL for persistence,
+PyTest for backend verification, and Flutter analyze/test for frontend quality checks.
 
 ## Technical Context
 
 **Language/Version**: Python 3.11 for backend, Dart/Flutter 3.x for frontend
 
 **Primary Dependencies**: Flask, Flask-SQLAlchemy, Flask-Migrate, psycopg, PyTest, Flutter SDK,
-HTTP client packages, Chart.js via browser integration
+HTTP package
 
 **Storage**: PostgreSQL
 
-**Testing**: PyTest for backend unit/integration coverage; Flutter widget/integration tests for
-frontend flows; smoke checks for dashboard/reporting views
+**Testing**: PyTest for backend unit/integration coverage; Flutter analyze and widget/integration
+tests for frontend flows; smoke checks for tenant/site/inventory/workload/budget/team flows
 
 **Target Platform**: Web browser on desktop and mobile devices
 
@@ -35,8 +38,8 @@ active site workspace; dashboard charts should render without blocking core work
 **Constraints**: Browser-first delivery, role-based access control, secure server-side validation,
 and a simple two-tier architecture aligned with the constitution
 
-**Scale/Scope**: Single organization deployment with dozens of sites, hundreds of inventory
-items, and ongoing work/budget updates across active sites
+**Scale/Scope**: Multi-tenant deployment with tenant-scoped sites, inventory, workloads, budgets,
+and team data
 
 ## Constitution Check
 
@@ -49,6 +52,7 @@ The constitution is satisfied:
 - Critical paths are covered by PyTest and Flutter tests.
 - Server-side validation and role-based access are planned for all mutating actions.
 - Logging, readable structure, and explicit API contracts support maintainability.
+- Tenant-scoped data access is enforced via request tenant resolution and model-level tenant fields.
 
 ## Site Structure
 
@@ -95,9 +99,7 @@ frontend/
 ```
 
 **Structure Decision**: Use a two-tier web architecture with Flask handling data, security, and
-business rules, and Flutter handling the browser UI, navigation, and reporting dashboards.
-Chart.js is integrated at the frontend reporting layer to render chart-based summaries from API
-data.
+business rules, and Flutter handling the browser UI, navigation, and operational workflows.
 
 ## Complexity Tracking
 
