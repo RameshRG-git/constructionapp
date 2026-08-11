@@ -194,7 +194,7 @@ class _SiteInventoryScreenState extends State<SiteInventoryScreen> {
       children: [
         Row(
           children: [
-            Expanded(child: Text('Inventory', style: theme.textTheme.headlineMedium)),
+            Expanded(child: Text('Site Materials', style: theme.textTheme.headlineMedium)),
             FilledButton.icon(
               onPressed: workspace.selectedSiteId == null ? null : () => _showItemDialog(),
               icon: const Icon(Icons.add),
@@ -203,7 +203,7 @@ class _SiteInventoryScreenState extends State<SiteInventoryScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        Text('Inventory for the selected site.', style: theme.textTheme.bodyLarge),
+        Text('Materials for the selected site.', style: theme.textTheme.bodyLarge),
         const SizedBox(height: 16),
         Wrap(
           spacing: 12,
@@ -280,7 +280,7 @@ class _SiteInventoryScreenState extends State<SiteInventoryScreen> {
                 : _error != null
                     ? Center(child: Text('Error: $_error'))
                     : _items.isEmpty
-                        ? const Center(child: Text('No inventory items found'))
+                        ? const Center(child: Text('No materials found'))
                         : ListView.separated(
                             itemCount: _items.length,
                             separatorBuilder: (_, __) => const Divider(height: 1),

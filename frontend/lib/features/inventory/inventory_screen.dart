@@ -197,7 +197,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       children: [
         Row(
           children: [
-            Expanded(child: Text('Inventory', style: theme.textTheme.headlineMedium)),
+            Expanded(child: Text('Materials Hub', style: theme.textTheme.headlineMedium)),
             FilledButton.icon(
               onPressed: _siteId == null ? null : () => _showItemDialog(),
               icon: const Icon(Icons.add),
@@ -206,7 +206,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        Text('Browse all inventory first, then narrow it with site or search filters.', style: theme.textTheme.bodyLarge),
+        Text('Browse all materials first, then narrow by site or search filters.', style: theme.textTheme.bodyLarge),
         const SizedBox(height: 16),
         Wrap(
           spacing: 12,
@@ -235,7 +235,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             SizedBox(
               width: 180,
               child: TextField(
-                decoration: const InputDecoration(labelText: 'Search inventory'),
+                decoration: const InputDecoration(labelText: 'Search materials'),
                 onChanged: (value) {
                   setState(() => _search = value);
                   _loadInventory();
@@ -276,7 +276,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 : _error != null
                     ? Center(child: Text('Error: $_error'))
                     : _items.isEmpty
-                        ? const Center(child: Text('No inventory items found'))
+                        ? const Center(child: Text('No materials found'))
                         : ListView.separated(
                             itemCount: _items.length,
                             separatorBuilder: (_, __) => const Divider(height: 1),
@@ -285,7 +285,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               return ListTile(
                                 title: Text(item['item_name']?.toString() ?? '-'),
                                 subtitle: Text(
-                                  '${item['site_name'] ?? 'All sites'} • ${item['category'] ?? '-'} • Cost ${item['unit_cost'] ?? 0} • Value ${item['inventory_value'] ?? 0} • ${item['current_quantity']} / ${item['minimum_quantity']} ${item['unit_of_measure'] ?? ''}',
+                                  '${item['category'] ?? '-'} • Cost ${item['unit_cost'] ?? 0} • Value ${item['inventory_value'] ?? 0} • ${item['current_quantity']} / ${item['minimum_quantity']} ${item['unit_of_measure'] ?? ''}',
                                 ),
                                 trailing: Wrap(
                                   spacing: 8,

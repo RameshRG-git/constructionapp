@@ -85,7 +85,7 @@ class _SiteWorkspaceScreenState extends State<SiteWorkspaceScreen> {
             const TabBar(
               tabs: [
                 Tab(icon: Icon(Icons.groups_2_rounded), text: 'Workloads'),
-                Tab(icon: Icon(Icons.inventory_2_rounded), text: 'Inventory'),
+                Tab(icon: Icon(Icons.inventory_2_rounded), text: 'Site Materials'),
                 Tab(icon: Icon(Icons.account_balance_wallet_rounded), text: 'Budgets'),
               ],
             ),

@@ -11,11 +11,12 @@ class WorkloadsScreen extends StatefulWidget {
 }
 
 class _WorkloadsScreenState extends State<WorkloadsScreen> {
+  static const String _statusAll = 'all';
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _teamMembers = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _roles = <Map<String, dynamic>>[];
   int? _siteId;
-  String _status = '';
+  String _status = 'open';
   String _search = '';
   String _onDateFilter = '';
   String _fromDateFilter = '';
@@ -138,6 +139,10 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
     if (_siteId == null) {
       return;
     }
+    if (_status.isEmpty) {
+      _status = 'open';
+    }
+    final statusParam = _status == _statusAll ? '' : _status;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -145,11 +150,12 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
     try {
       final response = await ApiRegistry.workloads.listWorkloads(
         _siteId!,
-        status: _status,
+        status: statusParam,
         query: _search,
         onDate: _onDateFilter,
         fromDate: _fromDateFilter,
         toDate: _toDateFilter,
+        includePast: _status == _statusAll,
         sortBy: _sortBy,
         sortOrder: _sortOrder,
       );
@@ -504,10 +510,9 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
               runSpacing: 8,
               children: [
                 for (final status in const [
-                  ('', 'All'),
+                  (_statusAll, 'All'),
                   ('open', 'Open'),
                   ('in_progress', 'In Progress'),
-                  ('blocked', 'Blocked'),
                   ('completed', 'Completed'),
                 ])
                   ChoiceChip(
@@ -584,7 +589,7 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
             OutlinedButton(
               onPressed: () {
                 setState(() {
-                  _status = '';
+                  _status = 'open';
                   _search = '';
                   _onDateFilter = '';
                   _fromDateFilter = '';

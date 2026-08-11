@@ -30,7 +30,7 @@ class _AppShellState extends State<AppShell> {
   static const _destinations = <({String route, IconData icon, String label})>[
     (route: '/', icon: Icons.dashboard_rounded, label: 'Dashboard'),
     (route: '/sites', icon: Icons.apartment_rounded, label: 'Sites'),
-    (route: '/inventory', icon: Icons.inventory_rounded, label: 'Inventory'),
+    (route: '/inventory', icon: Icons.inventory_rounded, label: 'Materials Hub'),
     (route: '/team', icon: Icons.groups_rounded, label: 'Team'),
     (route: '/tenant-admin', icon: Icons.business_rounded, label: 'Tenant Admin'),
   ];

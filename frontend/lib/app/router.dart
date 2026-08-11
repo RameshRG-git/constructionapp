@@ -49,7 +49,7 @@ class AppRoutes {
         child: SitesScreen(),
       ),
       inventory: (_) => const AppShell(
-        title: 'Inventory',
+        title: 'Materials Hub',
         currentRoute: inventory,
         child: InventoryScreen(),
       ),

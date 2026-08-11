@@ -13,7 +13,6 @@ class BudgetsScreen extends StatefulWidget {
 class _BudgetsScreenState extends State<BudgetsScreen> {
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
   int? _siteId;
-  String _status = '';
   String _sortBy = 'recorded_at';
   String _sortOrder = 'desc';
   bool _isLoading = false;
@@ -23,7 +22,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   double _inventoryExpenseTotal = 0;
   double _totalExpense = 0;
   double _remainingBudget = 0;
-  double _variance = 0;
 
   @override
   void initState() {
@@ -62,7 +60,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     try {
       final response = await ApiRegistry.budgets.listBudgets(
         _siteId!,
-        status: _status,
         sortBy: _sortBy,
         sortOrder: _sortOrder,
       );
@@ -77,7 +74,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
         _inventoryExpenseTotal = (summary['inventory_expense_total'] as num?)?.toDouble() ?? 0;
         _totalExpense = (summary['total_expense'] as num?)?.toDouble() ?? 0;
         _remainingBudget = (summary['remaining_budget'] as num?)?.toDouble() ?? 0;
-        _variance = (summary['variance'] as num?)?.toDouble() ?? 0;
       });
     } catch (error) {
       setState(() {
@@ -234,7 +230,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
               ),
               Chip(label: Text('Actual: ${_actualTotal.toStringAsFixed(2)}')),
               Chip(label: Text('Workload Expense: ${_payrollTotal.toStringAsFixed(2)}')),
-              Chip(label: Text('Inventory Expense: ${_inventoryExpenseTotal.toStringAsFixed(2)}')),
+              Chip(label: Text('Materials Value: ${_inventoryExpenseTotal.toStringAsFixed(2)}')),
               Chip(label: Text('Total Expense: ${_totalExpense.toStringAsFixed(2)}')),
             ],
           ),
@@ -244,25 +240,10 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
           runSpacing: 8,
           spacing: 12,
           children: [
-            for (final status in const [
-              ('', 'All'),
-              ('under_budget', 'Under Budget'),
-              ('on_budget', 'On Budget'),
-              ('over_budget', 'Over Budget'),
-            ])
-              ChoiceChip(
-                label: Text(status.$2),
-                selected: _status == status.$1,
-                onSelected: (_) {
-                  setState(() => _status = status.$1);
-                  _loadBudgets();
-                },
-              ),
             SegmentedButton<String>(
               segments: const [
                 ButtonSegment(value: 'recorded_at', label: Text('Latest')),
-                ButtonSegment(value: 'planned_amount', label: Text('Planned')),
-                ButtonSegment(value: 'actual_amount', label: Text('Actual')),
+                ButtonSegment(value: 'actual_amount', label: Text('Actual Amount')),
                 ButtonSegment(value: 'category_name', label: Text('Category')),
               ],
               selected: {_sortBy},
@@ -279,7 +260,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
               },
               icon: Icon(_sortOrder == 'asc' ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded),
             ),
-            Chip(label: Text('Variance: ${_variance.toStringAsFixed(2)}')),
             OutlinedButton.icon(onPressed: _loadBudgets, icon: const Icon(Icons.refresh_rounded), label: const Text('Refresh')),
           ],
         ),
@@ -305,7 +285,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                 trailing: Wrap(
                                   spacing: 8,
                                   children: [
-                                    Chip(label: Text(item['budget_status']?.toString() ?? '-')),
                                     IconButton(
                                       icon: const Icon(Icons.edit_outlined),
                                       onPressed: () => _showBudgetDialog(existing: item),
