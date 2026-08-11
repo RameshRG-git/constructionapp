@@ -6,7 +6,7 @@ from ..models.budget_record import BudgetRecord
 from ..models.inventory import InventoryItem
 from ..models.work_assignment import WorkAssignment
 from ..services.budget_service import BudgetService
-from ..services.domain_rules import BudgetStatus, WorkStatus
+from ..services.domain_rules import BudgetStatus
 from ..services.tenancy import get_request_tenant_name
 
 
@@ -41,7 +41,6 @@ def list_budgets(site_id):
         for item in WorkAssignment.query.filter(
             WorkAssignment.site_id == site_id,
             WorkAssignment.tenant_name == tenant_name,
-            WorkAssignment.status != WorkStatus.COMPLETED,
         ).all()
     )
     inventory_expense_total = sum(
