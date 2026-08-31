@@ -6,6 +6,7 @@ This roadmap follows the existing implementation sequence for the construction m
 
 - Phases 1 through 5 are delivered.
 - Post-MVP tenant/team/workload-budget enhancements are delivered and in active use.
+- Expense-based budgeting, user provisioning, and authenticated access are delivered.
 
 ## Phase 1: Foundation
 
@@ -44,7 +45,19 @@ This roadmap follows the existing implementation sequence for the construction m
 - Simplify global navigation and workspace controls.
 - Keep global inventory and site inventory usage intentionally distinct.
 
-## Phase 7: Polish and Hardening
+## Phase 7: Expense-Based Budgeting
+
+- Capture unit cost on materials and derive materials value.
+- Treat workload payments and materials value as budget expenses.
+- Present remaining budget against total expense and simplify budget controls.
+
+## Phase 8: Authentication and Access Control
+
+- Provision application users and map them to tenants with access roles.
+- Deliver sign-in with server-side sessions and automatic tenant activation.
+- Restrict tenant administration to the `tenant_admin` role.
+
+## Phase 9: Polish and Hardening
 
 - Improve logging, traceability, and operational error messages.
 - Tighten authorization checks across all mutation endpoints.
@@ -65,4 +78,6 @@ This roadmap follows the existing implementation sequence for the construction m
 - M4: Workload and budget workflows production-ready.
 - M5: Team and tenant operations production-ready.
 - M6: Delete and UX simplification complete.
-- M7: Cross-cutting polish complete and release candidate prepared.
+- M7: Expense-based budgeting adopted for site reporting.
+- M8: Authenticated, role-aware access enforced across the product.
+- M9: Cross-cutting polish complete and release candidate prepared.

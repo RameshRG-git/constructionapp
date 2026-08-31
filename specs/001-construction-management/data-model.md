@@ -19,9 +19,10 @@
 
 ### Inventory Item
 - Represents a tracked material or supply.
-- Fields: id, tenant_name, site_id, item_name, category, unit_of_measure, current_quantity,
+- Fields: id, tenant_name, site_id, item_name, category, unit_of_measure, unit_cost, current_quantity,
   minimum_quantity, storage_location, created_at, updated_at.
-- Computed field in API: low_stock (current_quantity < minimum_quantity).
+- Computed fields in API: low_stock (current_quantity < minimum_quantity) and
+  inventory_value (current_quantity * unit_cost).
 - Relationships: belongs to a site and tenant; has many inventory transactions.
 
 ### Inventory Transaction
@@ -48,8 +49,24 @@
 - Budget status values: under_budget, on_budget, over_budget.
 - Relationships: belongs to a site and tenant.
 - Validation: planned_amount and actual_amount must be non-negative.
-- Reporting notes: summary includes payroll_total (from completed assignments paid_amount) and
-  remaining_budget calculated as actual_total - payroll_total.
+- Reporting notes: summary combines workload expense (paid_amount across all assignments) and
+  materials value (current_quantity * unit_cost across site inventory) into total_expense, then
+  reports remaining_budget as actual_total - total_expense.
+
+### App User
+- Represents a person who can sign in to the application.
+- Fields: id, username, email, full_name, password_hash, is_active, created_at, updated_at.
+- Constraints: username and email are globally unique.
+- Security: password is stored only as a salted hash and is never returned by the API.
+- Relationships: has many tenant mappings, removed together with the user.
+
+### User Tenant Mapping
+- Represents which tenants a user may access and with what role.
+- Fields: id, user_id, tenant_id, tenant_slug, access_role, is_active, created_at, updated_at.
+- Constraints: unique (user_id, tenant_id); deletes cascade from both user and tenant.
+- Access roles: admin, tenant_admin, project_management, site_operations, warehouse_control,
+  finance_review.
+- Behavior: the first active mapping determines the tenant activated after sign-in.
 
 ### Team Member
 - Represents a worker profile available for workload assignment.
@@ -86,6 +103,7 @@
 - One site has many budget records.
 - One inventory item has many inventory transactions.
 - One user role can be assigned to many users.
+- One app user has many tenant mappings, and one tenant has many user mappings.
 
 ## State Transitions
 - Site: planned -> active -> on_hold -> active -> closed.
@@ -101,3 +119,6 @@
 - Closed sites should reject new operational changes except authorized reopening workflows.
 - Team role titles must be unique within each tenant.
 - Delete operations for inventory items, assignments, and budget records must be scoped to tenant.
+- Usernames must be at least 3 characters and emails must be well formed and unique.
+- Passwords must be at least 8 characters and are never stored or returned in plaintext.
+- A user may be mapped to a given tenant only once, and the access role must be a supported value.

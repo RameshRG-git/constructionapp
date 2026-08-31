@@ -4,7 +4,7 @@
 
 **Created**: 2026-05-18
 
-**Last Updated**: 2026-07-31
+**Last Updated**: 2026-08-31
 
 **Status**: Implemented and Iterating
 
@@ -90,6 +90,26 @@ uses the same role to confirm paid amount calculation is consistent.
 
 ---
 
+### User Story 5 - Secure Sign-In and Tenant Access (Priority: P1)
+
+A user signs in with their own credentials and lands directly in the tenant they are assigned to,
+seeing only the administration features their access role permits.
+
+**Why this priority**: Operational data must not be reachable without authentication, and tenant
+context must be correct from the first screen.
+
+**Independent Test**: Sign in as a user mapped to one tenant, confirm that tenant becomes active,
+and confirm Tenant Admin is visible only for a `tenant_admin` user.
+
+**Acceptance Scenarios**:
+
+1. **Given** valid credentials, **When** the user signs in, **Then** the session is established and
+   the mapped tenant becomes the active tenant.
+2. **Given** invalid credentials, **When** sign-in is attempted, **Then** a single generic failure
+   message is shown without revealing which field was wrong.
+3. **Given** a signed-in user without the `tenant_admin` role, **When** they view navigation or
+   request the tenant admin route directly, **Then** the feature is unavailable.
+
 ### Edge Cases
 
 - What happens when a site is closed while inventory or workload records still reference it?
@@ -98,6 +118,8 @@ uses the same role to confirm paid amount calculation is consistent.
 - What happens when two users update the same site or stock record close together?
 - How are records isolated when two tenants use the same site names or role titles?
 - What happens when users try to query only current workloads versus historical workloads?
+- What happens when a user has no tenant mapping, or their only mapping is deactivated?
+- What happens when a signed-in user is deactivated during an active session?
 
 ## Requirements *(mandatory)*
 
@@ -123,8 +145,10 @@ uses the same role to confirm paid amount calculation is consistent.
 - **FR-011**: The system MUST support current-workload default views and searchable history views.
 - **FR-012**: The system MUST allow users to record planned budget amounts and actual spending for a
   site and capture budget category.
-- **FR-013**: The system MUST calculate budget summary values including planned total, actual total,
-  payroll total, remaining budget, and variance.
+- **FR-013**: The system MUST treat workload payments and site materials value as expenses and show
+  workload expense, materials value, total expense, and remaining budget in the budget summary.
+- **FR-014**: The system MUST capture a unit cost for materials and use it to calculate materials
+  value as quantity multiplied by unit cost.
 - **FR-014**: The system MUST include Team Management with member CRUD-lite (create/list/update)
   and role/day-rate catalog management.
 - **FR-015**: The system MUST seed default role/day-rate entries for a tenant when none exist.
@@ -137,6 +161,13 @@ uses the same role to confirm paid amount calculation is consistent.
   members.
 - **FR-020**: The system MUST keep a site summary that combines status, inventory risk, workload,
   and budget variance in one place.
+- **FR-021**: The system MUST require authentication before any operational screen is reachable.
+- **FR-022**: The system MUST store user passwords only as hashes and never return them from the API.
+- **FR-023**: The system MUST allow administrators to create users and map users to tenants with an
+  access role.
+- **FR-024**: The system MUST activate the user's assigned tenant automatically after sign-in.
+- **FR-025**: The system MUST restrict tenant administration to users holding the `tenant_admin`
+  access role, enforced in both navigation and route entry.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -149,6 +180,8 @@ uses the same role to confirm paid amount calculation is consistent.
 - **Budget Record**: A planned and actual cost view for a site, including remaining budget and variance.
 - **Team Member**: A worker profile with job title and daily pay settings.
 - **Team Role Rate**: A reusable title/day-rate definition used by team and workload workflows.
+- **App User**: A sign-in identity with credentials and active state.
+- **User Tenant Mapping**: The link granting a user access to a tenant under a specific access role.
 
 ## Success Criteria *(mandatory)*
 
@@ -163,6 +196,8 @@ uses the same role to confirm paid amount calculation is consistent.
   range, and review budget in one session.
 - **SC-005**: Tenant-isolated data views remain consistent when switching tenant context.
 - **SC-006**: Users can delete unwanted workload, inventory, and budget rows with confirmation.
+- **SC-007**: A signed-in user reaches their assigned tenant workspace without manual tenant switching.
+- **SC-008**: Administration features are not reachable by users lacking the required access role.
 
 ## Assumptions
 
@@ -171,3 +206,5 @@ uses the same role to confirm paid amount calculation is consistent.
 - Notifications, procurement automation, and detailed accounting integrations remain out of scope.
 - Lightweight payroll deduction at workload level is in scope; full payroll processing is out of scope.
 - The application focuses on operational tracking rather than advanced forecasting or optimization.
+- Self-service registration, password reset, and multi-factor authentication are out of scope;
+  administrators provision user accounts.

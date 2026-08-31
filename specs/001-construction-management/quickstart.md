@@ -27,6 +27,7 @@ source .venv/bin/activate
 pip install -e .[dev]
 export FLASK_APP=app:create_app
 export DEFAULT_TENANT=kaniskahomes
+export SECRET_KEY="replace-with-a-strong-random-value"
 flask db upgrade
 flask run --host 127.0.0.1 --port 5000
 pytest
@@ -35,7 +36,7 @@ pytest
 ## Frontend
 1. Install Flutter dependencies.
 2. Launch the Flutter web client in Chrome or another supported browser.
-3. Verify sites, inventory, workloads, budgets, and team management screens load correctly.
+3. Sign in, then verify sites, materials, workloads, budgets, and team screens load correctly.
 
 Example commands once the scaffold exists:
 ```bash
@@ -49,20 +50,59 @@ flutter test
 ## Tenant Context
 - All API calls are tenant-scoped through `X-Tenant`.
 - If not supplied, backend falls back to `DEFAULT_TENANT` (default `kaniskahomes`).
+- After sign-in the client activates the tenant returned as `default_tenant` for that user.
 - Use the tenant admin workflow to create additional tenant workspaces.
 
+## Authentication and Access
+- Users sign in at `/login` with username or email plus password.
+- Sessions are tracked with a signed server-side cookie; set a strong `SECRET_KEY` outside local dev.
+- Tenant Admin is hidden from navigation and blocked on direct navigation unless the signed-in user
+  holds the `tenant_admin` access role.
+- Manage users and user-to-tenant mappings from the Tenant Admin screen.
+
+Bootstrap the first administrator on an empty database:
+
+```bash
+cd /home/ubuntu/projects/constructionapp/backend
+source .venv/bin/activate
+python -c "
+from app import create_app
+from app.models.tenant import Tenant
+from app.services.user_service import UserService
+app = create_app()
+with app.app_context():
+    user = UserService.create_user('admin', 'admin@example.com', 'Platform Admin', 'ChangeMe123!')
+    tenant = Tenant.query.filter(Tenant.slug == 'kaniskahomes').first()
+    UserService.map_user_to_tenant(user_id=user.id, tenant_id=tenant.id, access_role='tenant_admin')
+"
+```
+
+Change the bootstrap password immediately after the first sign-in.
+
 ## Functional Smoke Checklist
+- Sign in and confirm the session activates the mapped tenant.
+- Confirm Tenant Admin appears only for `tenant_admin` users.
+- Create a user and map it to a tenant from Tenant Admin.
 - Create and update a site.
-- Add inventory item, edit it, and delete it.
+- Add a materials item with unit cost, edit it, and delete it.
 - Add workload for one day and for a date range; verify older periods auto-complete.
-- Add budget record, verify summary totals (planned/actual/payroll/remaining), then delete a record.
+- Verify workloads default to the Open filter and that All includes completed records.
+- Add a budget record, verify summary totals (actual, workload expense, materials value, total
+  expense, remaining), then delete a record.
 - Add team member and role/day-rate entry.
+- Sign out and confirm protected routes redirect to login.
 
 ## CI/CD
 - Run backend and frontend checks before deployment:
 	- backend: `pytest`
 	- frontend: `flutter analyze` and `flutter test`
 - Production releases should be based on passing checks and reviewed commits.
+
+## Deployment Topology
+- Backend Flask API listens on `127.0.0.1:5000`.
+- Frontend release build is synced to `/var/www/kaniskahomes/`.
+- nginx serves the site on ports `80` and `443`, redirects HTTP to HTTPS, and proxies `/api/v1`
+  to the backend.
 
 ## Post-Change Runbook
 
@@ -76,6 +116,14 @@ Before restart, always apply schema migrations:
 cd /home/ubuntu/projects/constructionapp/backend
 source .venv/bin/activate
 FLASK_APP=app:create_app flask db upgrade
+```
+
+If `flask db upgrade` fails with `DuplicateTable`, the tables were already created by the startup
+`db.create_all()` call. Verify the live schema matches the migration, then align the revision:
+
+```bash
+FLASK_APP=app:create_app flask db stamp head
+FLASK_APP=app:create_app flask db current
 ```
 
 Preferred (systemd-managed service):
@@ -129,9 +177,13 @@ sudo rsync -av --delete build/web/ /var/www/kaniskahomes/
 ### 4) Verify deployed frontend
 
 ```bash
-curl -I http://127.0.0.1:8080
+curl -sk -L -o /dev/null -w "site:%{http_code}\n" http://127.0.0.1/
+curl -sk -L -o /dev/null -w "api_health:%{http_code}\n" http://127.0.0.1/api/v1/health
+curl -sk -L -o /dev/null -w "auth_session:%{http_code}\n" http://127.0.0.1/api/v1/auth/session
 ls -la /var/www/kaniskahomes/
 ```
+
+An unauthenticated `auth_session` check returns `401`, which is the expected result.
 
 ### 5) Recommended full sequence after any code change
 
@@ -145,11 +197,11 @@ curl -s -o /dev/null -w "api_health:%{http_code}\n" http://127.0.0.1:5000/api/v1
 
 # frontend build + deploy sync
 cd /home/ubuntu/projects/constructionapp/frontend
-/home/ubuntu/flutter/bin/flutter pub analyze
+/home/ubuntu/flutter/bin/flutter analyze
 /home/ubuntu/flutter/bin/flutter pub get
 /home/ubuntu/flutter/bin/flutter build web --release
 sudo rsync -av --delete build/web/ /var/www/kaniskahomes/
 
 # optional frontend health check
-curl -I http://127.0.0.1:8080
+curl -sk -L -o /dev/null -w "site:%{http_code}\n" http://127.0.0.1/
 ```

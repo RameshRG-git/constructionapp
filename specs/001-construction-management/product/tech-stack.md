@@ -6,6 +6,7 @@
 - Backend API: Flask service layer with domain rules and authorization.
 - Frontend client: Flutter Web application for browser-first delivery.
 - Database: PostgreSQL for transactional persistence.
+- Edge: nginx serves the built web client on ports 80/443 and proxies `/api/v1` to the backend.
 - Tenant isolation: request-scoped tenant context via `X-Tenant` + default tenant fallback.
 
 ## Backend
@@ -14,6 +15,7 @@
 - Framework: Flask
 - ORM and Migrations: Flask-SQLAlchemy, Flask-Migrate
 - Database Driver: psycopg
+- Authentication: Flask signed session cookies with Werkzeug password hashing
 - Testing: PyTest
 
 ## Frontend
@@ -26,7 +28,7 @@
 
 ## Data and Domain
 
-- Core domains: Tenants, Sites, Inventory, Workloads, Budgets, Team Members, Team Role Rates.
+- Core domains: Tenants, Users, Sites, Materials, Workloads, Budgets, Team Members, Team Role Rates.
 - Server-side validation for mutating operations.
 - Role-based access control enforced in backend services and APIs.
 - Tenant-scoped CRUD and summary queries.

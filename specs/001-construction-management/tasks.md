@@ -137,6 +137,25 @@
 
 ---
 
+## Phase 8: Expense Model, Access Control, and Sign-In (Delivered)
+
+**Purpose**: Treat operational activity as budget expense and secure the application behind authenticated, role-aware access.
+
+- [x] T053 Add `unit_cost` to inventory items and expose derived `inventory_value` in backend/app/models/inventory.py and backend/app/api/inventory.py
+- [x] T054 Capture and display unit cost in frontend/lib/features/inventory/inventory_screen.dart and frontend/lib/features/inventory/site_inventory_screen.dart
+- [x] T055 Treat workload payments and materials value as expenses in backend/app/api/budgets.py with total_expense and remaining_budget outputs
+- [x] T056 Simplify budget UI by removing planned amount, status chips, and variance chip in frontend/lib/features/budgets/budgets_screen.dart
+- [x] T057 Default workload filtering to Open, remove Blocked, and include completed records under All in backend/app/api/workloads.py and frontend/lib/features/workloads/workloads_screen.dart
+- [x] T058 Rename inventory experience to Materials Hub and Site Materials across navigation, routes, and screens
+- [x] T059 Add AppUser and UserTenant models with migration in backend/app/models/app_user.py, backend/app/models/user_tenant.py, and backend/migrations/versions/f3c8d41b9a27_add_app_users_and_user_tenants.py
+- [x] T060 Add user provisioning and tenant mapping endpoints in backend/app/services/user_service.py and backend/app/api/users.py
+- [x] T061 Add Users and User Mapping tabs in frontend/lib/features/tenants/tenant_admin_screen.dart with frontend/lib/features/tenants/user_api.dart
+- [x] T062 Add session-based sign-in endpoints in backend/app/api/auth.py
+- [x] T063 Add login screen and auth state handling in frontend/lib/features/auth/login_screen.dart, frontend/lib/features/auth/auth_api.dart, and frontend/lib/shared/auth_scope.dart
+- [x] T064 Guard routes, auto-activate the mapped tenant, and gate Tenant Admin on the `tenant_admin` role in frontend/lib/shared/app_shell.dart and frontend/lib/app/main.dart
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

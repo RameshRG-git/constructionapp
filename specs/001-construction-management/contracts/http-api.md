@@ -8,8 +8,8 @@ be authorized, validated server-side, and return actionable error responses.
 - Base path: `/api/v1`
 - Content type: `application/json`
 - Tenant routing: `X-Tenant` request header (falls back to configured default tenant)
-- Authentication: browser-friendly authenticated session with role-based authorization enforced by the
-  backend
+- Authentication: signed server-side session cookie issued by `POST /auth/login`
+- Authorization: tenant access roles are attached through user-to-tenant mappings
 - Error response shape:
 ```json
 {
@@ -22,6 +22,18 @@ be authorized, validated server-side, and return actionable error responses.
 ```
 
 ## Endpoints
+
+### Authentication
+- `POST /auth/login` - sign in with `identifier` (username or email) and `password`
+- `POST /auth/logout` - clear the active session
+- `GET /auth/session` - return the current session context, or `401` when unauthenticated
+
+Session payload returned by login and session:
+- `user` - user profile without password data
+- `tenants` - active tenant mappings for the user
+- `access_roles` - distinct access roles across those mappings
+- `default_tenant` - tenant slug the client should activate after sign-in
+- `is_tenant_admin` - `true` when the user holds the `tenant_admin` role
 
 ### Sites
 - `GET /sites` - list sites with summary fields
@@ -52,6 +64,9 @@ Query parameters for inventory lists:
 - `sort_by` (`item_name`, `category`, `current_quantity`, `minimum_quantity`)
 - `sort_order` (`asc`, `desc`)
 
+Inventory item payload includes `unit_cost` and derived `inventory_value`
+(`current_quantity * unit_cost`).
+
 ### Workloads
 - `GET /sites/{site_id}/assignments` - list work assignments
 - `POST /sites/{site_id}/assignments` - create a work assignment
@@ -79,9 +94,11 @@ Query parameters for workload list:
 Budget summary payload includes:
 - `planned_total`
 - `actual_total`
-- `payroll_total`
-- `remaining_budget`
-- `variance`
+- `payroll_total` - workload expense across all assignment statuses
+- `inventory_expense_total` - materials value across site inventory
+- `total_expense` - `payroll_total + inventory_expense_total`
+- `remaining_budget` - `actual_total - total_expense`
+- `variance` - `total_expense - planned_total`
 
 ### Team Management
 - `GET /team-members` - list team members
@@ -96,6 +113,19 @@ Budget summary payload includes:
 - `POST /tenants` - create tenant
 - `GET /tenants/current` - get current tenant context
 
+### User Administration
+- `GET /users` - list application users with their tenant mappings
+- `POST /users` - create an application user
+- `PATCH /users/{user_id}` - update profile, password, or active state
+- `DELETE /users/{user_id}` - delete a user and its tenant mappings
+- `GET /user-tenants` - list user-to-tenant mappings; supports `user_id` and `tenant_slug` filters
+- `POST /user-tenants` - map a user to a tenant with an access role
+- `PATCH /user-tenants/{mapping_id}` - update mapping access role or active state
+- `DELETE /user-tenants/{mapping_id}` - remove a mapping
+
+Supported access roles: `admin`, `tenant_admin`, `project_management`, `site_operations`,
+`warehouse_control`, `finance_review`.
+
 ### Reporting
 - `GET /sites/{site_id}/summary` - return combined site health, inventory risk, workload,
   and budget variance data for the dashboard
@@ -108,4 +138,10 @@ Budget summary payload includes:
 - Budget records require non-negative planned and actual amounts.
 - Team members require full_name, job_title, and daily_pay_rate.
 - Team role rates require title and daily_pay_rate.
+- Users require a unique username (minimum 3 characters), unique valid email, full name, and a
+  password of at least 8 characters stored only as a hash.
+- User-tenant mappings require an existing user, an existing tenant, a supported access role, and
+  must be unique per user and tenant pair.
+- Failed sign-in attempts return `401` with a single generic message for unknown users, inactive
+  users, and wrong passwords.
 - Unauthorized requests must return `401` or `403` with a clear error code.

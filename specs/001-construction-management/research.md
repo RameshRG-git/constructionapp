@@ -45,6 +45,20 @@
 - Rationale: Users requested role standardization and budget deduction visibility tied to workload entry.
 - Alternatives considered: free-text-only assignees without role rates, external payroll integration.
 
+## Decision 7a: Expense Model for Budgets
+- Decision: Treat workload payments and current materials value (quantity multiplied by unit cost) as
+  site expenses, and report remaining budget as actual amount minus total expense.
+- Rationale: Site managers wanted budget figures to react immediately when workloads or materials are
+  added or deleted.
+- Alternatives considered: consumption-based materials costing, payroll-only deductions.
+
+## Decision 7b: Authentication and User Provisioning
+- Decision: Use signed server-side session cookies with hashed passwords, provision users from the
+  tenant admin screen, and drive tenant activation from the user's first active tenant mapping.
+- Rationale: Keeps the browser-first flow simple while ensuring tenant context and administration
+  access follow the signed-in identity.
+- Alternatives considered: token storage in the browser, per-tenant separate logins.
+
 ## Decision 8: Testing Strategy
 - Decision: Use PyTest for backend coverage and Flutter tests for browser flows.
 - Rationale: This gives direct coverage over the critical CRUD and reporting paths while keeping the
@@ -53,6 +67,12 @@
 
 ## Decision 9: Deployment and Operations
 - Decision: Standardize operational runbook steps around Alembic migrations, systemd backend restart,
-  Flutter web release build, and rsync-based static deploy.
+  Flutter web release build, and rsync-based static deploy behind nginx on ports 80/443.
 - Rationale: This matches the deployed environment and reduced repeated migration/runtime drift issues.
 - Alternatives considered: ad hoc process kills/manual static copies.
+
+## Decision 10: Handling Migration Drift
+- Decision: When startup `db.create_all()` has already created tables, verify the live schema against
+  the migration and reconcile with `flask db stamp` instead of dropping or recreating tables.
+- Rationale: Preserves production data while restoring a correct Alembic revision pointer.
+- Alternatives considered: dropping and recreating affected tables, disabling migrations.

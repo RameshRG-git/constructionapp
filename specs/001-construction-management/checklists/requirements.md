@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-05-18
-**Last Reviewed**: 2026-07-31
+**Last Reviewed**: 2026-08-31
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -35,3 +35,5 @@
 - Items marked incomplete require spec updates before `/speckit.clarify` or `/speckit.plan`
 - Revalidated after scope expansion for multi-tenant operations, team management, period-based workloads,
   payroll-aware budget summary, and delete actions.
+- Revalidated again after expense-based budgeting, materials unit cost, user provisioning, and
+  authenticated role-aware access were delivered.

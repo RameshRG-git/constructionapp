@@ -2,7 +2,7 @@
 
 **Branch**: `001-construction-management` | **Date**: 2026-05-18 | **Spec**: [spec.md](spec.md)
 
-**Last Updated**: 2026-07-31
+**Last Updated**: 2026-08-31
 
 **Input**: Feature specification from `/specs/001-construction-management/spec.md`
 
@@ -11,10 +11,11 @@
 ## Summary
 
 Build a browser-based construction operations system with a Flask backend and a Flutter web
-frontend. The delivered scope now includes tenant-aware data isolation, site tracking, global and
-site inventory views, workload period tracking (day/date-range), budget monitoring with payroll
-impact, team management, and role/day-rate catalog management. Use PostgreSQL for persistence,
-PyTest for backend verification, and Flutter analyze/test for frontend quality checks.
+frontend. The delivered scope now includes authenticated sign-in with role-aware access, tenant-aware
+data isolation, site tracking, global and site materials views, workload period tracking
+(day/date-range), budget monitoring that treats workload payments and materials value as expenses,
+team management, and role/day-rate catalog management. Use PostgreSQL for persistence, PyTest for
+backend verification, and Flutter analyze/test for frontend quality checks.
 
 ## Technical Context
 
@@ -53,6 +54,7 @@ The constitution is satisfied:
 - Server-side validation and role-based access are planned for all mutating actions.
 - Logging, readable structure, and explicit API contracts support maintainability.
 - Tenant-scoped data access is enforced via request tenant resolution and model-level tenant fields.
+- Authentication uses signed server-side sessions with hashed credentials.
 
 ## Site Structure
 
@@ -78,6 +80,7 @@ backend/
 │   ├── models/
 │   ├── services/
 │   └── extensions/
+├── migrations/
 └── tests/
     ├── unit/
     └── integration/
@@ -86,16 +89,17 @@ frontend/
 ├── lib/
 │   ├── app/
 │   ├── features/
+│   │   ├── auth/
 │   │   ├── dashboard/
 │   │   ├── sites/
 │   │   ├── inventory/
 │   │   ├── workloads/
-│   │   └── budgets/
+│   │   ├── budgets/
+│   │   ├── team/
+│   │   └── tenants/
 │   └── shared/
 ├── test/
 └── web/
-
-.gitlab-ci.yml
 ```
 
 **Structure Decision**: Use a two-tier web architecture with Flask handling data, security, and
