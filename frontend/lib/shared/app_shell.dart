@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../app/router.dart';
 import 'api_registry.dart';
+import 'auth_scope.dart';
 
 class AppShell extends StatefulWidget {
   final String title;
@@ -35,18 +37,65 @@ class _AppShellState extends State<AppShell> {
     (route: '/tenant-admin', icon: Icons.business_rounded, label: 'Tenant Admin'),
   ];
 
-  int get _selectedIndex => _destinations.indexWhere((item) => item.route == widget.currentRoute);
+  List<({String route, IconData icon, String label})> _visibleDestinations(bool isTenantAdmin) {
+    return _destinations
+        .where((item) => item.route != AppRoutes.tenantAdmin || isTenantAdmin)
+        .toList();
+  }
 
-  void _navigate(BuildContext context, int index) {
-    final destination = _destinations[index];
+  int _selectedIndexOf(List<({String route, IconData icon, String label})> destinations) {
+    return destinations.indexWhere((item) => item.route == widget.currentRoute);
+  }
+
+  void _navigate(
+    BuildContext context,
+    List<({String route, IconData icon, String label})> destinations,
+    int index,
+  ) {
+    final destination = destinations[index];
     if (destination.route == widget.currentRoute) {
       return;
     }
     Navigator.of(context).pushReplacementNamed(destination.route);
   }
 
+  Future<void> _signOut(BuildContext context) async {
+    await AuthScope.of(context).signOut();
+    if (!context.mounted) {
+      return;
+    }
+    Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final auth = AuthScope.of(context);
+
+    if (auth.isRestoring) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (!auth.isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+        }
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (widget.currentRoute == AppRoutes.tenantAdmin && !auth.isTenantAdmin) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
+        }
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final destinations = _visibleDestinations(auth.isTenantAdmin);
+    final selectedIndex = _selectedIndexOf(destinations);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final useRail = constraints.maxWidth >= 1024;
@@ -95,6 +144,34 @@ class _AppShellState extends State<AppShell> {
                                 color: Color(0xFF0F172A),
                               ),
                             ),
+                            const Spacer(),
+                            PopupMenuButton<String>(
+                              tooltip: 'Account',
+                              onSelected: (value) {
+                                if (value == 'logout') {
+                                  _signOut(context);
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                PopupMenuItem<String>(
+                                  enabled: false,
+                                  child: Text(auth.displayName),
+                                ),
+                                const PopupMenuDivider(),
+                                const PopupMenuItem<String>(
+                                  value: 'logout',
+                                  child: ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: Icon(Icons.logout_rounded),
+                                    title: Text('Sign out'),
+                                  ),
+                                ),
+                              ],
+                              child: const CircleAvatar(
+                                backgroundColor: Color(0xFFEAF2F4),
+                                child: Icon(Icons.person_rounded, color: Color(0xFF0F4C5C)),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -115,13 +192,13 @@ class _AppShellState extends State<AppShell> {
                                 child: Column(
                                   children: [
                                     const SizedBox(height: 4),
-                                    for (var i = 0; i < _destinations.length; i++)
+                                    for (var i = 0; i < destinations.length; i++)
                                       Padding(
                                         padding: const EdgeInsets.only(bottom: 6),
                                         child: _NavButton(
-                                          destination: _destinations[i],
-                                          selected: (_selectedIndex < 0 ? 0 : _selectedIndex) == i,
-                                          onTap: () => _navigate(context, i),
+                                          destination: destinations[i],
+                                          selected: (selectedIndex < 0 ? 0 : selectedIndex) == i,
+                                          onTap: () => _navigate(context, destinations, i),
                                         ),
                                       ),
                                     const Spacer(),
@@ -166,10 +243,10 @@ class _AppShellState extends State<AppShell> {
                       child: NavigationBar(
                         backgroundColor: Colors.transparent,
                         indicatorColor: const Color(0xFFDCEFF4),
-                        selectedIndex: _selectedIndex < 0 ? 0 : _selectedIndex,
-                        onDestinationSelected: (index) => _navigate(context, index),
+                        selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
+                        onDestinationSelected: (index) => _navigate(context, destinations, index),
                         destinations: [
-                          for (final destination in _destinations)
+                          for (final destination in destinations)
                             NavigationDestination(
                               icon: Icon(destination.icon),
                               label: destination.label,

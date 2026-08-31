@@ -1,5 +1,6 @@
 from flask import Flask
 
+from .api.auth import auth_bp
 from .api.budgets import budgets_bp
 from .api.errors import register_error_handlers
 from .api.inventory import inventory_bp
@@ -8,6 +9,7 @@ from .api.sites import sites_bp
 from .api.team_members import team_members_bp
 from .api.team_roles import team_roles_bp
 from .api.tenants import tenants_bp
+from .api.users import users_bp
 from .api.workloads import workloads_bp
 from .config import DevelopmentConfig
 from .extensions import init_extensions
@@ -36,6 +38,8 @@ def create_app(config_object=DevelopmentConfig):
     app.register_blueprint(team_members_bp, url_prefix="/api/v1")
     app.register_blueprint(team_roles_bp, url_prefix="/api/v1")
     app.register_blueprint(tenants_bp, url_prefix="/api/v1")
+    app.register_blueprint(users_bp, url_prefix="/api/v1")
+    app.register_blueprint(auth_bp, url_prefix="/api/v1")
 
     with app.app_context():
         db.create_all()

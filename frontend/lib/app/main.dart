@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../features/dashboard/dashboard_screen.dart';
 import '../shared/app_shell.dart';
+import '../shared/auth_scope.dart';
 import '../shared/workspace_scope.dart';
 import 'router.dart';
 
@@ -9,8 +10,19 @@ void main() {
   runApp(const ConstructionApp());
 }
 
-class ConstructionApp extends StatelessWidget {
+class ConstructionApp extends StatefulWidget {
   const ConstructionApp({super.key});
+
+  @override
+  State<ConstructionApp> createState() => _ConstructionAppState();
+}
+
+class _ConstructionAppState extends State<ConstructionApp> {
+  @override
+  void initState() {
+    super.initState();
+    AuthController.instance.restoreSession();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,9 +127,12 @@ class ConstructionApp extends StatelessWidget {
       initialRoute: AppRoutes.dashboard,
       routes: appRoutes.routes,
       builder: (context, child) {
-        return WorkspaceScope(
-          controller: WorkspaceController.instance,
-          child: child ?? const SizedBox.shrink(),
+        return AuthScope(
+          controller: AuthController.instance,
+          child: WorkspaceScope(
+            controller: WorkspaceController.instance,
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
       onUnknownRoute: (_) => MaterialPageRoute<void>(

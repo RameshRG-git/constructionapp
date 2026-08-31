@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../features/auth/login_screen.dart';
 import '../features/budgets/budgets_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/inventory/inventory_screen.dart';
@@ -11,6 +12,7 @@ import '../features/workloads/workloads_screen.dart';
 import '../shared/app_shell.dart';
 
 class AppRoutes {
+  static const login = '/login';
   static const dashboard = '/';
   static const dashboardAlias = '/dashboard';
   static const sites = '/sites';
@@ -23,6 +25,7 @@ class AppRoutes {
   static const tenantAdmin = '/tenant-admin';
 
   Map<String, WidgetBuilder> get routes => {
+      login: (_) => const LoginScreen(),
       dashboard: (_) => const AppShell(
         title: 'Dashboard',
         currentRoute: dashboard,
