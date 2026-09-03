@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../shared/workspace_scope.dart';
 import '../budgets/budgets_screen.dart';
 import '../inventory/site_inventory_screen.dart';
+import '../payroll/payments_screen.dart';
 import '../workloads/workloads_screen.dart';
 
 class SiteWorkspaceScreen extends StatefulWidget {
@@ -75,7 +76,7 @@ class _SiteWorkspaceScreenState extends State<SiteWorkspaceScreen> {
     final selectedSite = workspace.selectedSite;
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -87,6 +88,7 @@ class _SiteWorkspaceScreenState extends State<SiteWorkspaceScreen> {
                 Tab(icon: Icon(Icons.groups_2_rounded), text: 'Workloads'),
                 Tab(icon: Icon(Icons.inventory_2_rounded), text: 'Site Materials'),
                 Tab(icon: Icon(Icons.account_balance_wallet_rounded), text: 'Budgets'),
+                Tab(icon: Icon(Icons.payments_rounded), text: 'Payments'),
               ],
             ),
             const SizedBox(height: 12),
@@ -96,6 +98,7 @@ class _SiteWorkspaceScreenState extends State<SiteWorkspaceScreen> {
                   WorkloadsScreen(),
                   SiteInventoryScreen(),
                   BudgetsScreen(),
+                  PaymentsScreen(),
                 ],
               ),
             ),
@@ -115,7 +118,7 @@ class _SiteWorkspaceScreenState extends State<SiteWorkspaceScreen> {
                         Text('Choose a site to open its workspace', style: theme.textTheme.titleLarge),
                         const SizedBox(height: 8),
                         Text(
-                          'Select one site, then manage inventory, workloads, and budgets without switching screens.',
+                          'Select one site, then manage inventory, workloads, budgets, and weekly payments without switching screens.',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyLarge,
                         ),
