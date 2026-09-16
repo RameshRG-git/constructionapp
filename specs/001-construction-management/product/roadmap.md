@@ -64,6 +64,15 @@ This roadmap follows the existing implementation sequence for the construction m
 - Finalize responsive behavior and UX polish.
 - Verify CI coverage for backend and frontend checks.
 
+## Phase 10: Weekly Payroll Controls (Delivered)
+
+- Add a site Payments tab for Sunday-to-Saturday payroll derived from workloads.
+- Exclude employee sick-leave dates from workload pay and hours.
+- Add Team Payroll controls for sick-leave ranges and employee salary advances.
+- Recover due advances FIFO from net weekly pay and carry unpaid balances forward.
+- Preserve an advance-recovery ledger to prevent duplicate deductions.
+- Add budget transaction type, comments, and editable transaction date.
+
 ## Delivery Strategy
 
 - Ship in incremental slices aligned with user stories.
@@ -81,3 +90,4 @@ This roadmap follows the existing implementation sequence for the construction m
 - M7: Expense-based budgeting adopted for site reporting.
 - M8: Authenticated, role-aware access enforced across the product.
 - M9: Cross-cutting polish complete and release candidate prepared.
+- M10: Weekly payroll, sick-leave, advance recovery, and budget transaction metadata delivered.

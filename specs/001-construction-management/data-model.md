@@ -44,14 +44,41 @@
 
 ### Budget Record
 - Represents planned and actual financial tracking for a site.
-- Fields: id, tenant_name, site_id, category_name, planned_amount, actual_amount, remaining_amount,
-  budget_status, recorded_at, updated_at.
+- Fields: id, tenant_name, site_id, category_name, transaction_type, comments, planned_amount,
+  actual_amount, remaining_amount, budget_status, recorded_at, updated_at.
+- `recorded_at` is the user-editable transaction date in the budget UI and remains the audit timestamp
+  when no date is supplied.
+- Transaction types: cash, bank_transfer, upi, cheque, other.
 - Budget status values: under_budget, on_budget, over_budget.
 - Relationships: belongs to a site and tenant.
 - Validation: planned_amount and actual_amount must be non-negative.
 - Reporting notes: summary combines workload expense (paid_amount across all assignments) and
   materials value (current_quantity * unit_cost across site inventory) into total_expense, then
   reports remaining_budget as actual_total - total_expense.
+
+### Sick Leave
+- Represents an employee-wide sick-leave date range; it is not site scoped.
+- Fields: id, tenant_name, employee_name, start_date, end_date, reason, created_at, updated_at.
+- Every sick date overlapping a workload period is excluded from days worked, hours, and pay,
+  including workloads that span multiple weeks.
+
+### Employee Advance
+- Represents money advanced to an employee before normal payroll.
+- Fields: id, tenant_name, employee_name, amount, amount_recovered, granted_on, due_date, note,
+  created_at, updated_at.
+- Only advances due on or before the payroll week's Saturday are eligible for recovery.
+
+### Advance Recovery
+- Represents an audit entry for recovering part of an employee advance from a payroll week.
+- Fields: id, tenant_name, advance_id, employee_name, week_start_date, amount, created_at.
+- Recoveries are FIFO by due date, capped at that week's net earned pay. Remaining balance carries
+  forward, and a week's recovery is committed only when its payment is first recorded.
+
+### Payroll Payment
+- Represents the site-level payment record for one employee and one Sunday-to-Saturday week.
+- Fields include site_id, employee_name, week_start_date, week_end_date, days_worked, earned_amount,
+  advance_recovery_amount, paid_amount, status, payment_method, note, and paid_on.
+- Computed values include sick_days, net_payable_amount, outstanding_amount, and advance_balance.
 
 ### App User
 - Represents a person who can sign in to the application.
@@ -101,6 +128,9 @@
 - One site has many inventory items.
 - One site has many work assignments.
 - One site has many budget records.
+- One tenant has many sick leaves and employee advances.
+- One employee advance has many advance recovery records.
+- One site has many weekly payroll payment records.
 - One inventory item has many inventory transactions.
 - One user role can be assigned to many users.
 - One app user has many tenant mappings, and one tenant has many user mappings.
@@ -119,6 +149,8 @@
 - Closed sites should reject new operational changes except authorized reopening workflows.
 - Team role titles must be unique within each tenant.
 - Delete operations for inventory items, assignments, and budget records must be scoped to tenant.
+- Sick leave end dates cannot precede start dates.
+- Advance amounts must be positive; recovery cannot exceed the advance balance or that week's net pay.
 - Usernames must be at least 3 characters and emails must be well formed and unique.
 - Passwords must be at least 8 characters and are never stored or returned in plaintext.
 - A user may be mapped to a given tenant only once, and the access role must be a supported value.

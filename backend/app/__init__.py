@@ -8,6 +8,7 @@ from .api.payroll import payroll_bp
 from .api.site_summary import site_summary_bp
 from .api.sites import sites_bp
 from .api.team_members import team_members_bp
+from .api.team_payroll import team_payroll_bp
 from .api.team_roles import team_roles_bp
 from .api.tenants import tenants_bp
 from .api.users import users_bp
@@ -38,6 +39,7 @@ def create_app(config_object=DevelopmentConfig):
     app.register_blueprint(budgets_bp, url_prefix="/api/v1")
     app.register_blueprint(payroll_bp, url_prefix="/api/v1")
     app.register_blueprint(team_members_bp, url_prefix="/api/v1")
+    app.register_blueprint(team_payroll_bp, url_prefix="/api/v1")
     app.register_blueprint(team_roles_bp, url_prefix="/api/v1")
     app.register_blueprint(tenants_bp, url_prefix="/api/v1")
     app.register_blueprint(users_bp, url_prefix="/api/v1")

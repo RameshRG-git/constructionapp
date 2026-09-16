@@ -59,6 +59,23 @@
   access follow the signed-in identity.
 - Alternatives considered: token storage in the browser, per-tenant separate logins.
 
+## Decision 7c: Weekly Payroll, Sick Leave, and Advances
+- Decision: Calculate Sunday-to-Saturday payroll from workload assignment days; exclude employee-wide
+  sick-leave dates; recover due employee advances FIFO by due date from net weekly earnings; and
+  persist each recovery in a weekly ledger.
+- Rationale: Payroll must reflect attendance and prevent a large advance from producing a negative
+  payment. A ledger makes carry-forward balances auditable and prevents duplicate deductions.
+- UI placement: Site Payments handles weekly calculation and disbursement; Team Payroll handles
+  tenant-wide sick-leave and advance records because they follow employees across sites.
+- Alternatives considered: site-specific leave records, deducting the full advance immediately, and
+  recomputing recovery on every payroll view without a ledger.
+
+## Decision 7d: Budget Transaction Metadata
+- Decision: Reuse `recorded_at` as the user-selected transaction date and add comments plus
+  payment-like transaction types (`cash`, `bank_transfer`, `upi`, `cheque`, `other`).
+- Rationale: This preserves backward compatibility while supporting practical reconciliation without
+  introducing a second date column.
+
 ## Decision 8: Testing Strategy
 - Decision: Use PyTest for backend coverage and Flutter tests for browser flows.
 - Rationale: This gives direct coverage over the critical CRUD and reporting paths while keeping the

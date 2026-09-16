@@ -4,7 +4,8 @@ import '../app/router.dart';
 import 'api_registry.dart';
 import 'auth_scope.dart';
 
-const _appVersion = '0.1.1+2';
+const _appVersion = '0.1.1';
+const _buildNumber = '2';
 
 class AppShell extends StatefulWidget {
   final String title;
@@ -163,7 +164,11 @@ class _AppShellState extends State<AppShell> {
                                       Text(auth.displayName),
                                       const SizedBox(height: 2),
                                       const Text(
-                                        'Version $_appVersion',
+                                        'App version: $_appVersion',
+                                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                      ),
+                                      const Text(
+                                        'Build Number: $_buildNumber',
                                         style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                                       ),
                                     ],

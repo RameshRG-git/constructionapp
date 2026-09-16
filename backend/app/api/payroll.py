@@ -49,19 +49,26 @@ def record_payroll_payment(site_id):
     )
 
     earned = float(payload.get("earned_amount", row["earned_amount"] if row else 0))
-    paid_amount = float(payload.get("paid_amount", earned))
-    status = payload.get("status") or ("paid" if paid_amount >= earned and earned > 0 else "partial")
-    if paid_amount <= 0:
+    default_pay = row["net_payable_amount"] if row else earned
+    paid_amount = float(payload.get("paid_amount", default_pay))
+    if "status" in payload and payload["status"]:
+        status = payload["status"]
+    elif paid_amount >= default_pay:
+        # Also covers the case where advance recovery already absorbed the full net payable.
+        status = "paid"
+    elif paid_amount > 0:
+        status = "partial"
+    else:
         status = "pending"
 
-    PayrollService.upsert_payment(
+    PayrollService.record_payment(
         tenant_name,
         site_id,
         week_start,
         employee_name,
+        earned_amount=earned,
         role_title=payload.get("role_title") or (row["role_title"] if row else None),
         days_worked=payload.get("days_worked", row["days_worked"] if row else 0),
-        earned_amount=earned,
         paid_amount=paid_amount,
         status=status,
         payment_method=payload.get("payment_method"),
@@ -82,17 +89,20 @@ def pay_all_payroll(site_id):
 
     snapshot = PayrollService.week_payroll(tenant_name, site_id, week_start)
     for row in snapshot["items"]:
-        if row["outstanding_amount"] <= 0:
-            continue
-        PayrollService.upsert_payment(
+        is_new = row["payment_id"] is None
+        if is_new and row["earned_amount"] <= 0:
+            continue  # nothing worked this week, nothing to settle
+        if not is_new and row["outstanding_amount"] <= 0:
+            continue  # already fully paid
+        PayrollService.record_payment(
             tenant_name,
             site_id,
             week_start,
             row["employee_name"],
+            earned_amount=row["earned_amount"],
             role_title=row["role_title"],
             days_worked=row["days_worked"],
-            earned_amount=row["earned_amount"],
-            paid_amount=row["earned_amount"],
+            paid_amount=row["net_payable_amount"],
             status="paid",
             payment_method=payment_method,
             paid_on=paid_on,

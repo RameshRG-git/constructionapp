@@ -165,9 +165,11 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     }
     final rootContext = context;
     final earned = _numOf(row, 'earned_amount');
+    final advanceRecovery = _numOf(row, 'advance_recovery_amount');
+    final netPayable = _numOf(row, 'net_payable_amount');
     final outstanding = _numOf(row, 'outstanding_amount');
     final amountController = TextEditingController(
-      text: (outstanding > 0 ? outstanding : earned).toStringAsFixed(2),
+      text: (outstanding > 0 ? outstanding : netPayable).toStringAsFixed(2),
     );
     final noteController = TextEditingController(text: row['note']?.toString() ?? '');
     String method = row['payment_method']?.toString() ?? 'cash';
@@ -190,8 +192,18 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                       Text('Week ${_weekLabel()}'),
                       const SizedBox(height: 4),
                       Text(
-                        '${row['days_worked'] ?? 0} day(s) worked • Earned ${_money(earned)} • Outstanding ${_money(outstanding)}',
+                        '${row['days_worked'] ?? 0} day(s) worked'
+                        '${(row['sick_days'] as num? ?? 0) > 0 ? ' (${row['sick_days']} sick day(s) excluded)' : ''} • Earned ${_money(earned)}',
                       ),
+                      if (advanceRecovery > 0) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Advance recovery this week: -${_money(advanceRecovery)} • Net payable ${_money(netPayable)}',
+                          style: const TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Text('Outstanding ${_money(outstanding)}'),
                       const SizedBox(height: 16),
                       TextField(
                         controller: amountController,
@@ -404,12 +416,39 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     final assignments = (row['assignments'] as List<dynamic>? ?? <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .toList();
+    final sickDays = (row['sick_days'] as num? ?? 0).toInt();
+    final advanceRecovery = _numOf(row, 'advance_recovery_amount');
+    final advanceBalance = _numOf(row, 'advance_balance');
+    final netPayable = _numOf(row, 'net_payable_amount');
 
     return ExpansionTile(
       leading: const Icon(Icons.person_rounded),
       title: Text(row['employee_name']?.toString() ?? '-', style: const TextStyle(fontWeight: FontWeight.w700)),
-      subtitle: Text(
-        '${row['role_title'] ?? 'team'} • ${row['days_worked'] ?? 0} day(s) • Rate ${_money(row['daily_rate'] as num?)}/day',
+      subtitle: Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text('${row['role_title'] ?? 'team'} • ${row['days_worked'] ?? 0} day(s) • Rate ${_money(row['daily_rate'] as num?)}/day'),
+          if (sickDays > 0)
+            Chip(
+              visualDensity: VisualDensity.compact,
+              label: Text('$sickDays sick day(s)'),
+              backgroundColor: const Color(0xFFFFF7ED),
+            ),
+          if (advanceRecovery > 0)
+            Chip(
+              visualDensity: VisualDensity.compact,
+              label: Text('Advance recovered ${_money(advanceRecovery)}'),
+              backgroundColor: const Color(0xFFFEE2E2),
+            ),
+          if (advanceBalance > 0)
+            Chip(
+              visualDensity: VisualDensity.compact,
+              label: Text('Advance balance ${_money(advanceBalance)}'),
+              backgroundColor: const Color(0xFFF1F5F9),
+            ),
+        ],
       ),
       trailing: Wrap(
         spacing: 10,
@@ -419,7 +458,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(_money(row['earned_amount'] as num?), style: theme.textTheme.titleMedium),
+              Text(_money(netPayable), style: theme.textTheme.titleMedium),
               Text('Paid ${_money(row['paid_amount'] as num?)}', style: theme.textTheme.bodySmall),
             ],
           ),
@@ -433,13 +472,23 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       ),
       childrenPadding: const EdgeInsets.fromLTRB(56, 0, 16, 12),
       children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Gross earned ${_money(row['earned_amount'] as num?)}'
+            '${advanceRecovery > 0 ? ' • Advance recovery -${_money(advanceRecovery)} • Net payable ${_money(netPayable)}' : ''}',
+            style: theme.textTheme.bodySmall,
+          ),
+        ),
+        const SizedBox(height: 6),
         for (final assignment in assignments)
           ListTile(
             dense: true,
             contentPadding: EdgeInsets.zero,
             title: Text(assignment['title']?.toString() ?? '-'),
             subtitle: Text(
-              '${assignment['start_date']} to ${assignment['end_date']} • ${assignment['days_in_week']} day(s) in this week',
+              '${assignment['start_date']} to ${assignment['end_date']} • ${assignment['days_in_week']} day(s) in this week'
+              '${(assignment['sick_days_excluded'] as num? ?? 0) > 0 ? ' • ${assignment['sick_days_excluded']} sick day(s) excluded' : ''}',
             ),
             trailing: Text(_money(assignment['amount'] as num?)),
           ),
@@ -457,7 +506,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 
   Widget _buildTotalsBar(ThemeData theme) {
-    final totalPayable = _numOf(_summary.cast<String, dynamic>(), 'total_earned');
+    final totalEarned = _numOf(_summary.cast<String, dynamic>(), 'total_earned');
+    final totalAdvanceRecovered = _numOf(_summary.cast<String, dynamic>(), 'total_advance_recovered');
+    final totalPayable = _numOf(_summary.cast<String, dynamic>(), 'total_net_payable');
     final totalPaid = _numOf(_summary.cast<String, dynamic>(), 'total_paid');
     final outstanding = _numOf(_summary.cast<String, dynamic>(), 'total_outstanding');
 
@@ -473,6 +524,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         runSpacing: 12,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
+          _totalBlock(theme, 'Gross earned', totalEarned),
+          if (totalAdvanceRecovered > 0) _totalBlock(theme, 'Advance recovered', -totalAdvanceRecovered),
           _totalBlock(theme, 'Total payable', totalPayable),
           _totalBlock(theme, 'Total paid', totalPaid),
           _totalBlock(theme, 'Outstanding', outstanding),

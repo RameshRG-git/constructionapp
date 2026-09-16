@@ -88,8 +88,11 @@ Query parameters for workload list:
 ### Budgets
 - `GET /sites/{site_id}/budgets` - list budget records and summary
 - `POST /sites/{site_id}/budgets` - create a budget record
-- `PATCH /budgets/{budget_id}` - update planned or actual amounts
+- `PATCH /budgets/{budget_id}` - update amounts, transaction metadata, or recorded date
 - `DELETE /budgets/{budget_id}` - delete budget record
+
+Budget records include `category_name`, `transaction_type` (`cash`, `bank_transfer`, `upi`,
+`cheque`, `other`), `comments`, and `recorded_at` (the user-selected transaction date).
 
 Budget summary payload includes:
 - `planned_total`
@@ -107,6 +110,25 @@ Budget summary payload includes:
 - `GET /team-roles` - list role/day-rate catalog (auto-seeds defaults if empty)
 - `POST /team-roles` - create role/day-rate entry
 - `PATCH /team-roles/{role_id}` - update role/day-rate entry
+
+### Payroll and Employee Records
+- `GET /sites/{site_id}/payroll?week_start=YYYY-MM-DD` - calculate the Sunday-to-Saturday week containing the supplied date; defaults to the current week
+- `GET /sites/{site_id}/payroll/weeks` - list weeks with workload activity
+- `POST /sites/{site_id}/payroll/payments` - record or update one employee's weekly payment
+- `POST /sites/{site_id}/payroll/pay-all` - record all outstanding weekly payments
+- `GET /team/sick-leaves` - list tenant-wide employee sick-leave ranges
+- `POST /team/sick-leaves` - create a sick-leave range
+- `DELETE /team/sick-leaves/{leave_id}` - remove a sick-leave range
+- `GET /team/advances` - list employee advances, optionally filtered by employee or status
+- `POST /team/advances` - create an employee advance with a due date
+- `PATCH /team/advances/{advance_id}` - update an advance's amount, due date, or note
+- `DELETE /team/advances/{advance_id}` - remove an advance and its recovery history
+- `GET /team/advances/{advance_id}/recoveries` - list an advance's weekly recovery ledger
+
+Payroll rules: sick-leave dates are excluded per day from overlapping workload pay and hours;
+due advances are recovered FIFO by due date from net weekly earnings; recovery is capped at that
+week's net earnings and the remaining balance carries forward. Recovery is committed only when a
+payment is first recorded for that employee/week.
 
 ### Tenant Management
 - `GET /tenants` - list tenants
@@ -137,6 +159,8 @@ Supported access roles: `admin`, `tenant_admin`, `project_management`, `site_ope
 - Work assignments require assignee, title, and due date/period fields.
 - Budget records require non-negative planned and actual amounts.
 - Team members require full_name, job_title, and daily_pay_rate.
+- Sick leaves require employee_name, start_date, and an end date not before the start date.
+- Advances require employee_name, a positive amount, and due_date.
 - Team role rates require title and daily_pay_rate.
 - Users require a unique username (minimum 3 characters), unique valid email, full name, and a
   password of at least 8 characters stored only as a hash.

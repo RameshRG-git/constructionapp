@@ -168,6 +168,17 @@ and confirm Tenant Admin is visible only for a `tenant_admin` user.
 - **FR-024**: The system MUST activate the user's assigned tenant automatically after sign-in.
 - **FR-025**: The system MUST restrict tenant administration to users holding the `tenant_admin`
   access role, enforced in both navigation and route entry.
+- **FR-026**: The system MUST calculate site payroll for Sunday-to-Saturday weeks from workload
+  assignment dates and amounts.
+- **FR-027**: The system MUST exclude employee sick-leave dates from overlapping workload days,
+  hours, and payroll amounts.
+- **FR-028**: The system MUST allow administrators to log, view, and remove employee sick leave.
+- **FR-029**: The system MUST allow administrators to record employee advances with a due date,
+  recover due balances FIFO from weekly net pay, and carry any remaining balance forward.
+- **FR-030**: The system MUST preserve an auditable advance recovery entry per employee, advance,
+  and payroll week and MUST NOT recover the same week twice.
+- **FR-031**: The system MUST allow budget records to capture transaction type, comments, and a
+  user-selected transaction date using the existing `recorded_at` field.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -180,6 +191,11 @@ and confirm Tenant Admin is visible only for a `tenant_admin` user.
 - **Budget Record**: A planned and actual cost view for a site, including remaining budget and variance.
 - **Team Member**: A worker profile with job title and daily pay settings.
 - **Team Role Rate**: A reusable title/day-rate definition used by team and workload workflows.
+- **Payroll Payment**: A site employee payment for one Sunday-to-Saturday week, including gross pay,
+  sick-day exclusion, advance recovery, net payable, and payment status.
+- **Sick Leave**: A tenant-wide employee date range excluded from overlapping workload payroll.
+- **Employee Advance**: A tenant-wide advance with a due date and remaining balance.
+- **Advance Recovery**: An audit record of an advance deduction from a specific payroll week.
 - **App User**: A sign-in identity with credentials and active state.
 - **User Tenant Mapping**: The link granting a user access to a tenant under a specific access role.
 
@@ -204,7 +220,8 @@ and confirm Tenant Admin is visible only for a `tenant_admin` user.
 - Users are authenticated before accessing operational data.
 - Mobile browser support is expected, but native mobile apps are out of scope.
 - Notifications, procurement automation, and detailed accounting integrations remain out of scope.
-- Lightweight payroll deduction at workload level is in scope; full payroll processing is out of scope.
+- Operational weekly payroll derived from workload data is in scope; statutory calculations, taxes,
+  benefits, payslips, and external payroll-provider integrations remain out of scope.
 - The application focuses on operational tracking rather than advanced forecasting or optimization.
 - Self-service registration, password reset, and multi-factor authentication are out of scope;
   administrators provision user accounts.

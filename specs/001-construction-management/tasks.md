@@ -156,6 +156,22 @@
 
 ---
 
+## Phase 9: Weekly Payroll Controls (Delivered)
+
+**Purpose**: Add operational weekly payroll controls for sick leave, employee advances, and auditable recovery.
+
+- [x] T065 Add SickLeave, EmployeeAdvance, and AdvanceRecovery models and migration.
+- [x] T066 Add sick-leave and advance services with due-date/FIFO recovery rules.
+- [x] T067 Update weekly payroll to exclude sick days and calculate gross, recovery, net, and carry-forward balances.
+- [x] T068 Add Team Payroll API endpoints for sick leaves, advances, and recovery history.
+- [x] T069 Commit advance recovery only when a weekly payment is first recorded and prevent duplicate recovery.
+- [x] T070 Add Team Management Payroll tab for sick leave and advance entry/tracking.
+- [x] T071 Update site Payments UI with sick-day exclusions, advance recovery, net payable, and balance visibility.
+- [x] T072 Add budget transaction type, comments, and editable transaction date using recorded_at.
+- [x] T073 Smoke test sick-leave exclusion, advance carry-forward, locked recovery, and budget metadata.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

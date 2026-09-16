@@ -7,6 +7,7 @@ import '../features/sites/site_api.dart';
 import '../features/team/team_api.dart';
 import '../features/tenants/tenant_api.dart';
 import '../features/tenants/user_api.dart';
+import '../features/team/team_payroll_api.dart';
 import '../features/workloads/workload_api.dart';
 import 'api_client.dart';
 
@@ -20,6 +21,7 @@ class ApiRegistry {
   static final PayrollApi payroll = PayrollApi(client);
   static final DashboardApi dashboard = DashboardApi(client);
   static final TeamApi team = TeamApi(client);
+  static final TeamPayrollApi teamPayroll = TeamPayrollApi(client);
   static final TenantApi tenants = TenantApi(client);
   static final UserApi users = UserApi(client);
   static final AuthApi auth = AuthApi(client);

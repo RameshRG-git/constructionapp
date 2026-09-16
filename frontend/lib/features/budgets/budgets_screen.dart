@@ -93,53 +93,106 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
 
     final categoryController = TextEditingController(text: existing?['category_name']?.toString() ?? '');
     final actualController = TextEditingController(text: existing?['actual_amount']?.toString() ?? '0');
+    final commentsController = TextEditingController(text: existing?['comments']?.toString() ?? '');
+    String transactionType = existing?['transaction_type']?.toString() ?? 'cash';
+    DateTime recordedAt = DateTime.tryParse(existing?['recorded_at']?.toString() ?? '') ?? DateTime.now();
 
     final saved = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text(existing == null ? 'Add Budget' : 'Edit Budget'),
-          content: SizedBox(
-            width: 420,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: categoryController,
-                  decoration: const InputDecoration(labelText: 'Category Name'),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(existing == null ? 'Add Budget' : 'Edit Budget'),
+              content: SizedBox(
+                width: 420,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: categoryController,
+                        decoration: const InputDecoration(labelText: 'Category Name'),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: actualController,
+                        decoration: const InputDecoration(labelText: 'Actual Amount'),
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        initialValue: transactionType,
+                        items: const [
+                          DropdownMenuItem(value: 'cash', child: Text('Cash')),
+                          DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer')),
+                          DropdownMenuItem(value: 'upi', child: Text('UPI')),
+                          DropdownMenuItem(value: 'cheque', child: Text('Cheque')),
+                          DropdownMenuItem(value: 'other', child: Text('Other')),
+                        ],
+                        onChanged: (value) => setDialogState(() => transactionType = value ?? 'cash'),
+                        decoration: const InputDecoration(labelText: 'Transaction Type'),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        readOnly: true,
+                        controller: TextEditingController(
+                          text: '${recordedAt.year}-${recordedAt.month.toString().padLeft(2, '0')}-${recordedAt.day.toString().padLeft(2, '0')}',
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Date',
+                          suffixIcon: Icon(Icons.date_range_rounded),
+                        ),
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: recordedAt,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setDialogState(() => recordedAt = picked);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: commentsController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(labelText: 'Additional Comments'),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: actualController,
-                  decoration: const InputDecoration(labelText: 'Actual Amount'),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                FilledButton(
+                  onPressed: () async {
+                    final actualAmount = double.tryParse(actualController.text.trim()) ?? 0;
+                    final payload = <String, dynamic>{
+                      'category_name': categoryController.text.trim(),
+                      // Keep planned aligned with actual while planned is hidden from the UI.
+                      'planned_amount': actualAmount,
+                      'actual_amount': actualAmount,
+                      'transaction_type': transactionType,
+                      'comments': commentsController.text.trim(),
+                      'recorded_at': recordedAt.toIso8601String(),
+                    };
+                    if (existing == null) {
+                      await ApiRegistry.budgets.createBudget(_siteId!, payload);
+                    } else {
+                      await ApiRegistry.budgets.updateBudget(existing['id'] as int, payload);
+                    }
+                    if (!mounted) {
+                      return;
+                    }
+                    Navigator.pop(context, true);
+                  },
+                  child: const Text('Save'),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-            FilledButton(
-              onPressed: () async {
-                final actualAmount = double.tryParse(actualController.text.trim()) ?? 0;
-                final payload = <String, dynamic>{
-                  'category_name': categoryController.text.trim(),
-                  // Keep planned aligned with actual while planned is hidden from the UI.
-                  'planned_amount': actualAmount,
-                  'actual_amount': actualAmount,
-                };
-                if (existing == null) {
-                  await ApiRegistry.budgets.createBudget(_siteId!, payload);
-                } else {
-                  await ApiRegistry.budgets.updateBudget(existing['id'] as int, payload);
-                }
-                if (!mounted) {
-                  return;
-                }
-                Navigator.pop(context, true);
-              },
-              child: const Text('Save'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -277,11 +330,20 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             separatorBuilder: (_, __) => const Divider(height: 1),
                             itemBuilder: (context, index) {
                               final item = _items[index];
+                              final recordedAt = item['recorded_at']?.toString() ?? '';
+                              final recordedDate = DateTime.tryParse(recordedAt);
+                              final dateLabel = recordedDate == null
+                                  ? '-'
+                                  : '${recordedDate.year}-${recordedDate.month.toString().padLeft(2, '0')}-${recordedDate.day.toString().padLeft(2, '0')}';
+                              final comments = item['comments']?.toString() ?? '';
                               return ListTile(
                                 title: Text(item['category_name']?.toString() ?? '-'),
                                 subtitle: Text(
-                                  'Planned ${item['planned_amount']} • Actual ${item['actual_amount']} • Remaining ${item['remaining_amount']}',
+                                  'Planned ${item['planned_amount']} • Actual ${item['actual_amount']} • Remaining ${item['remaining_amount']}\n'
+                                  '${item['transaction_type'] ?? '-'} • $dateLabel'
+                                  '${comments.isNotEmpty ? ' • $comments' : ''}',
                                 ),
+                                isThreeLine: true,
                                 trailing: Wrap(
                                   spacing: 8,
                                   children: [

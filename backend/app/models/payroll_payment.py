@@ -17,6 +17,7 @@ class PayrollPayment(db.Model):
     week_end_date = db.Column(db.Date, nullable=False)
     days_worked = db.Column(db.Numeric(6, 2), nullable=False, default=0)
     earned_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    advance_recovery_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     paid_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     status = db.Column(db.String(20), nullable=False, default="pending")
     payment_method = db.Column(db.String(40), nullable=True)
@@ -46,6 +47,7 @@ class PayrollPayment(db.Model):
             "week_end_date": self.week_end_date.isoformat() if self.week_end_date else None,
             "days_worked": float(self.days_worked or 0),
             "earned_amount": float(self.earned_amount or 0),
+            "advance_recovery_amount": float(self.advance_recovery_amount or 0),
             "paid_amount": float(self.paid_amount or 0),
             "status": self.status,
             "payment_method": self.payment_method,

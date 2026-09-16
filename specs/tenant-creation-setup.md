@@ -12,7 +12,13 @@ This guide explains how to create and activate tenants in the Construction Manag
 
 - Tenant is resolved from `X-Tenant` request header.
 - If no header is provided, backend uses `DEFAULT_TENANT` from config.
-- Operational data is tenant-scoped using `tenant_name` across Sites, Inventory, Workloads, and Budgets.
+- Operational data is tenant-scoped using `tenant_name` across Sites, Inventory, Workloads, Budgets,
+  Payroll Payments, Sick Leaves, Employee Advances, and Advance Recoveries.
+- Sick leaves and advances are employee-wide records within a tenant; they are intentionally not
+  site-scoped because an employee may work across multiple sites.
+- Weekly payroll is calculated Sunday through Saturday from workload data. Sick-leave days are
+  excluded, and advances due by the week's Saturday are recovered FIFO from net pay with any
+  remaining balance carried forward.
 - Tenant metadata stores:
   - `schema_name` (for schema namespace, e.g. `tenant_kaniskahomes`)
   - `table_prefix` (for table namespace conventions, e.g. `kaniskahomes_`)

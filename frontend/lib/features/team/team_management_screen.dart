@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../shared/api_registry.dart';
+import 'team_payroll_screen.dart';
 
 class TeamManagementScreen extends StatefulWidget {
   const TeamManagementScreen({super.key});
@@ -675,7 +676,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen> {
     final theme = Theme.of(context);
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -690,6 +691,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen> {
             tabs: [
               Tab(icon: Icon(Icons.badge_rounded), text: 'Members'),
               Tab(icon: Icon(Icons.payments_rounded), text: 'Role & Daily Pay Catalog'),
+              Tab(icon: Icon(Icons.request_quote_rounded), text: 'Payroll'),
             ],
           ),
           const SizedBox(height: 12),
@@ -698,6 +700,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen> {
               children: [
                 _buildMembersTab(),
                 _buildRoleCatalogTab(),
+                const TeamPayrollScreen(),
               ],
             ),
           ),

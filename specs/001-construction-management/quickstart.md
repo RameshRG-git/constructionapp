@@ -89,7 +89,14 @@ Change the bootstrap password immediately after the first sign-in.
 - Verify workloads default to the Open filter and that All includes completed records.
 - Add a budget record, verify summary totals (actual, workload expense, materials value, total
   expense, remaining), then delete a record.
+- Add a budget record with transaction type, date, and comments; edit and verify those fields.
 - Add team member and role/day-rate entry.
+- Open Team Management > Payroll, log sick leave overlapping a workload, and verify the affected
+  days and pay are excluded in the site's Payments tab.
+- Log an employee advance with a due date before a payroll week, preview the deduction, record the
+  payment, and verify the recovery ledger and remaining advance balance.
+- Verify an advance larger than one week's net pay carries its remaining balance into a later week.
+- Verify repeating a payroll request does not create a second advance recovery.
 - Sign out and confirm protected routes redirect to login.
 
 ## CI/CD

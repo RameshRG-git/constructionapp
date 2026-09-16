@@ -13,6 +13,7 @@ Enable site managers, site operations, warehouse staff, and finance reviewers to
 - Balance team workload with day/date-range assignment visibility.
 - Monitor budget health by treating workload payments and materials value as expenses.
 - Standardize labor planning with tenant-specific role/day-rate catalogs.
+- Process weekly site payroll from workload data, excluding sick-leave days and tracking advance recovery.
 - Give each user secure, role-appropriate access to their own tenant workspace.
 - Provide a unified site summary for faster, better decisions.
 
@@ -22,7 +23,10 @@ Enable site managers, site operations, warehouse staff, and finance reviewers to
 - Tenant-aware materials tracking with unit cost, stock adjustments, and list filters.
 - Work assignment tracking with day/date-range support and history search.
 - Budget records with workload expense, materials value, total expense, and remaining budget.
+- Budget transaction type, comments, and user-selected transaction date.
 - Team member management and role/day-rate catalog management.
+- Team Payroll controls for employee sick leave and salary advances.
+- Site Payments controls for weekly payroll, payment status, and advance recovery visibility.
 - Delete actions for workload, materials, and budget records.
 - Authenticated sign-in, user provisioning, and user-to-tenant mapping.
 - Role-based access control and server-side validation.
@@ -40,5 +44,5 @@ Enable site managers, site operations, warehouse staff, and finance reviewers to
 - Native mobile apps.
 - Advanced forecasting and optimization.
 - Procurement automation or deep accounting integrations.
-- Full payroll processing and disbursement workflows.
+- External payroll-provider integrations and statutory payroll compliance.
 - Self-service registration, password reset, and multi-factor authentication.

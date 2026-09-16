@@ -14,7 +14,8 @@ Build a browser-based construction operations system with a Flask backend and a 
 frontend. The delivered scope now includes authenticated sign-in with role-aware access, tenant-aware
 data isolation, site tracking, global and site materials views, workload period tracking
 (day/date-range), budget monitoring that treats workload payments and materials value as expenses,
-team management, and role/day-rate catalog management. Use PostgreSQL for persistence, PyTest for
+team management, role/day-rate catalog management, and weekly payroll with sick-leave exclusion
+and employee advance recovery. Use PostgreSQL for persistence, PyTest for
 backend verification, and Flutter analyze/test for frontend quality checks.
 
 ## Technical Context
@@ -40,7 +41,7 @@ active site workspace; dashboard charts should render without blocking core work
 and a simple two-tier architecture aligned with the constitution
 
 **Scale/Scope**: Multi-tenant deployment with tenant-scoped sites, inventory, workloads, budgets,
-and team data
+team, payroll, sick-leave, advance, and recovery data
 
 ## Constitution Check
 
@@ -96,6 +97,7 @@ frontend/
 │   │   ├── workloads/
 │   │   ├── budgets/
 │   │   ├── team/
+│   │   ├── payroll/
 │   │   └── tenants/
 │   └── shared/
 ├── test/

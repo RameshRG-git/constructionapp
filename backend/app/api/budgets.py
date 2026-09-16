@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import Blueprint, request
 
 from .response import created, ok
@@ -76,6 +78,8 @@ def create_budget_record(site_id):
     planned_amount = payload.get("planned_amount", 0)
     actual_amount = payload.get("actual_amount", 0)
     remaining_amount = payload.get("remaining_amount", planned_amount - actual_amount)
+    recorded_at_raw = payload.get("recorded_at")
+    recorded_at = datetime.fromisoformat(recorded_at_raw) if recorded_at_raw else datetime.utcnow()
 
     if actual_amount > planned_amount:
         budget_status = BudgetStatus.OVER_BUDGET
@@ -88,10 +92,13 @@ def create_budget_record(site_id):
         tenant_name=tenant_name,
         site_id=site_id,
         category_name=payload.get("category_name"),
+        transaction_type=payload.get("transaction_type", "cash"),
+        comments=payload.get("comments"),
         planned_amount=planned_amount,
         actual_amount=actual_amount,
         remaining_amount=remaining_amount,
         budget_status=BudgetStatus(payload.get("budget_status", budget_status)),
+        recorded_at=recorded_at,
     )
     return created(record.to_dict())
 
@@ -105,12 +112,15 @@ def update_budget_record(budget_id):
         BudgetRecord.tenant_name == tenant_name,
     ).first_or_404()
 
-    for key in ["category_name", "planned_amount", "actual_amount", "remaining_amount"]:
+    for key in ["category_name", "planned_amount", "actual_amount", "remaining_amount", "transaction_type", "comments"]:
         if key in payload:
             setattr(record, key, payload[key])
 
     if "budget_status" in payload:
         record.budget_status = BudgetStatus(payload["budget_status"])
+
+    if "recorded_at" in payload and payload["recorded_at"]:
+        record.recorded_at = datetime.fromisoformat(payload["recorded_at"])
 
     if "planned_amount" in payload or "actual_amount" in payload:
         planned = float(record.planned_amount or 0)

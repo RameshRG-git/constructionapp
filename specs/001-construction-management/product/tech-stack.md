@@ -28,7 +28,8 @@
 
 ## Data and Domain
 
-- Core domains: Tenants, Users, Sites, Materials, Workloads, Budgets, Team Members, Team Role Rates.
+- Core domains: Tenants, Users, Sites, Materials, Workloads, Budgets, Team Members, Team Role Rates,
+  Payroll Payments, Sick Leaves, Employee Advances, and Advance Recoveries.
 - Server-side validation for mutating operations.
 - Role-based access control enforced in backend services and APIs.
 - Tenant-scoped CRUD and summary queries.
