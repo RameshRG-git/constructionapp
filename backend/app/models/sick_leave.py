@@ -10,6 +10,7 @@ class SickLeave(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     tenant_name = db.Column(db.String(120), nullable=False, index=True)
+    team_member_id = db.Column(db.Integer, db.ForeignKey("team_members.id"), nullable=False, index=True)
     employee_name = db.Column(db.String(255), nullable=False, index=True)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
@@ -21,6 +22,7 @@ class SickLeave(db.Model):
         return {
             "id": self.id,
             "tenant_name": self.tenant_name,
+            "team_member_id": self.team_member_id,
             "employee_name": self.employee_name,
             "start_date": self.start_date.isoformat() if self.start_date else None,
             "end_date": self.end_date.isoformat() if self.end_date else None,

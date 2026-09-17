@@ -267,7 +267,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                     try {
                       final response = await ApiRegistry.payroll.recordPayment(_siteId!, <String, dynamic>{
                         'week_start': _toIsoDate(_weekStart),
-                        'employee_name': row['employee_name'],
+                        'team_member_id': row['team_member_id'],
                         'role_title': row['role_title'],
                         'days_worked': row['days_worked'],
                         'earned_amount': earned,

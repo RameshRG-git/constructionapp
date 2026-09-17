@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/router.dart';
 import 'api_registry.dart';
 import 'auth_scope.dart';
+import 'tenant_branding.dart';
 
 const _appVersion = '0.1.1';
 const _buildNumber = '2';
@@ -109,6 +110,7 @@ class _AppShellState extends State<AppShell> {
             final tenant = snapshot.data ?? const <String, dynamic>{};
             final tenantName = tenant['name']?.toString() ?? 'KaniskaHomes';
             final logoUrl = tenant['logo_url']?.toString();
+            final logoAsset = resolveTenantLogoAsset(tenant['slug']?.toString());
 
             return Scaffold(
               body: Container(
@@ -136,17 +138,19 @@ class _AppShellState extends State<AppShell> {
                         ),
                         child: Row(
                           children: [
-                            _TenantBadge(logoUrl: logoUrl),
+                            _TenantBadge(logoUrl: logoUrl, logoAsset: logoAsset),
                             const SizedBox(width: 12),
-                            Text(
-                              tenantName,
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.3,
-                                color: Color(0xFF0F172A),
+                            // A bundled logo already carries the tenant's wordmark; avoid repeating the name.
+                            if (logoAsset == null || logoAsset.isEmpty)
+                              Text(
+                                tenantName,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.3,
+                                  color: Color(0xFF0F172A),
+                                ),
                               ),
-                            ),
                             const Spacer(),
                             PopupMenuButton<String>(
                               tooltip: 'Account',
@@ -281,11 +285,21 @@ class _AppShellState extends State<AppShell> {
 
 class _TenantBadge extends StatelessWidget {
   final String? logoUrl;
+  final String? logoAsset;
 
-  const _TenantBadge({required this.logoUrl});
+  const _TenantBadge({required this.logoUrl, this.logoAsset});
 
   @override
   Widget build(BuildContext context) {
+    if (logoAsset != null && logoAsset!.isNotEmpty) {
+      // Bundled logos are full wordmarks, not square icons; keep their aspect ratio uncropped.
+      return Image.asset(
+        logoAsset!,
+        height: 44,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => _fallbackIcon(),
+      );
+    }
     if (logoUrl != null && logoUrl!.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),

@@ -71,8 +71,8 @@ class PayrollService:
             WorkAssignment.tenant_name == tenant_name,
         ).all()
 
-        member_rates = {
-            member.full_name.strip().lower(): float(member.daily_pay_rate or 0)
+        members = {
+            member.id: member
             for member in TeamMember.query.filter(TeamMember.tenant_name == tenant_name).all()
         }
 
@@ -87,14 +87,17 @@ class PayrollService:
                 continue
 
             total_days = (end - start).days + 1
-            per_day_amount = float(assignment.paid_amount or 0) / total_days
+            day_fraction = float(assignment.work_day_fraction or 1) if total_days == 1 else 1.0
+            total_work_days = total_days * day_fraction
+            per_work_day_amount = float(assignment.paid_amount or 0) / total_work_days
             per_day_hours = float(assignment.estimated_hours or 0)
 
             employee_name = (assignment.assignee_name or "Unassigned").strip()
-            key = employee_name.lower()
+            key = assignment.team_member_id
             row = rows.setdefault(
                 key,
                 {
+                    "team_member_id": assignment.team_member_id,
                     "employee_name": employee_name,
                     "role_title": assignment.assignee_type,
                     "raw_assignments": [],
@@ -104,13 +107,14 @@ class PayrollService:
                 {
                     "assignment": assignment,
                     "dates": overlap_dates,
-                    "per_day_amount": per_day_amount,
+                    "day_fraction": day_fraction,
+                    "per_work_day_amount": per_work_day_amount,
                     "per_day_hours": per_day_hours,
                 }
             )
 
         payments = {
-            payment.employee_name.strip().lower(): payment
+            payment.team_member_id: payment
             for payment in PayrollPayment.query.filter(
                 PayrollPayment.tenant_name == tenant_name,
                 PayrollPayment.site_id == site_id,
@@ -120,8 +124,9 @@ class PayrollService:
 
         items = []
         for key, row in rows.items():
+            team_member_id = row["team_member_id"]
             employee_name = row["employee_name"]
-            sick_dates = SickLeaveService.sick_dates_for_employee(tenant_name, employee_name, week_start, week_end)
+            sick_dates = SickLeaveService.sick_dates_for_member(tenant_name, team_member_id, week_start, week_end)
 
             days_worked = 0
             sick_days = 0
@@ -133,9 +138,10 @@ class PayrollService:
                 assignment = entry["assignment"]
                 worked_dates = [d for d in entry["dates"] if d not in sick_dates]
                 sick_in_assignment = len(entry["dates"]) - len(worked_dates)
-                amount = entry["per_day_amount"] * len(worked_dates)
+                worked_units = len(worked_dates) * entry["day_fraction"]
+                amount = entry["per_work_day_amount"] * worked_units
 
-                days_worked += len(worked_dates)
+                days_worked += worked_units
                 sick_days += sick_in_assignment
                 hours_worked += entry["per_day_hours"] * len(worked_dates)
                 earned_amount += amount
@@ -147,7 +153,7 @@ class PayrollService:
                         "status": assignment.status.value if assignment.status else None,
                         "start_date": entry["dates"][0].isoformat(),
                         "end_date": entry["dates"][-1].isoformat(),
-                        "days_in_week": len(worked_dates),
+                        "days_in_week": worked_units,
                         "sick_days_excluded": sick_in_assignment,
                         "amount": round(amount, 2),
                     }
@@ -157,7 +163,8 @@ class PayrollService:
             payment = payments.get(key)
             paid = round(float(payment.paid_amount or 0), 2) if payment else 0.0
             status = payment.status if payment else "pending"
-            daily_rate = member_rates.get(key)
+            member = members.get(team_member_id)
+            daily_rate = float(member.daily_pay_rate or 0) if member else None
             if daily_rate is None and days_worked:
                 daily_rate = round(earned / days_worked, 2)
 
@@ -165,11 +172,12 @@ class PayrollService:
                 # Recovery is locked in once a payment record exists for this week.
                 advance_recovery_amount = round(float(payment.advance_recovery_amount or 0), 2)
             else:
-                advance_recovery_amount = AdvanceService.preview_recovery(tenant_name, employee_name, week_end, earned)
+                advance_recovery_amount = AdvanceService.preview_recovery(tenant_name, team_member_id, week_end, earned)
             net_payable_amount = round(earned - advance_recovery_amount, 2)
 
             items.append(
                 {
+                    "team_member_id": team_member_id,
                     "employee_name": employee_name,
                     "role_title": row["role_title"],
                     "days_worked": days_worked,
@@ -178,7 +186,7 @@ class PayrollService:
                     "daily_rate": round(daily_rate or 0, 2),
                     "earned_amount": earned,
                     "advance_recovery_amount": advance_recovery_amount,
-                    "advance_balance": AdvanceService.outstanding_balance(tenant_name, employee_name),
+                    "advance_balance": AdvanceService.outstanding_balance(tenant_name, team_member_id),
                     "net_payable_amount": net_payable_amount,
                     "paid_amount": paid,
                     "outstanding_amount": round(net_payable_amount - paid, 2),
@@ -251,19 +259,20 @@ class PayrollService:
         ]
 
     @staticmethod
-    def upsert_payment(tenant_name, site_id, week_start, employee_name, **fields):
+    def upsert_payment(tenant_name, site_id, week_start, team_member_id, employee_name, **fields):
         week_end = week_start + timedelta(days=PAYROLL_WEEK_LENGTH - 1)
         payment = PayrollPayment.query.filter(
             PayrollPayment.tenant_name == tenant_name,
             PayrollPayment.site_id == site_id,
             PayrollPayment.week_start_date == week_start,
-            PayrollPayment.employee_name == employee_name,
+            PayrollPayment.team_member_id == team_member_id,
         ).first()
 
         if payment is None:
             payment = PayrollPayment(
                 tenant_name=tenant_name,
                 site_id=site_id,
+                team_member_id=team_member_id,
                 week_start_date=week_start,
                 week_end_date=week_end,
                 employee_name=employee_name,
@@ -277,19 +286,19 @@ class PayrollService:
         return payment
 
     @staticmethod
-    def record_payment(tenant_name, site_id, week_start, employee_name, earned_amount, **fields):
+    def record_payment(tenant_name, site_id, week_start, team_member_id, employee_name, earned_amount, **fields):
         """Create or update a week's payment. Advance recovery is only committed on first creation."""
         week_end = week_start + timedelta(days=PAYROLL_WEEK_LENGTH - 1)
         existing = PayrollPayment.query.filter(
             PayrollPayment.tenant_name == tenant_name,
             PayrollPayment.site_id == site_id,
             PayrollPayment.week_start_date == week_start,
-            PayrollPayment.employee_name == employee_name,
+            PayrollPayment.team_member_id == team_member_id,
         ).first()
 
         if existing is None:
             advance_recovery_amount = AdvanceService.apply_recovery(
-                tenant_name, employee_name, week_start, week_end, earned_amount
+                tenant_name, team_member_id, employee_name, week_start, week_end, earned_amount
             )
         else:
             advance_recovery_amount = float(existing.advance_recovery_amount or 0)
@@ -298,6 +307,7 @@ class PayrollService:
             tenant_name,
             site_id,
             week_start,
+            team_member_id,
             employee_name,
             earned_amount=earned_amount,
             advance_recovery_amount=advance_recovery_amount,

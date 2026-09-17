@@ -10,6 +10,7 @@ class EmployeeAdvance(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     tenant_name = db.Column(db.String(120), nullable=False, index=True)
+    team_member_id = db.Column(db.Integer, db.ForeignKey("team_members.id"), nullable=False, index=True)
     employee_name = db.Column(db.String(255), nullable=False, index=True)
     amount = db.Column(db.Numeric(12, 2), nullable=False)
     amount_recovered = db.Column(db.Numeric(12, 2), nullable=False, default=0)
@@ -31,6 +32,7 @@ class EmployeeAdvance(db.Model):
         return {
             "id": self.id,
             "tenant_name": self.tenant_name,
+            "team_member_id": self.team_member_id,
             "employee_name": self.employee_name,
             "amount": float(self.amount or 0),
             "amount_recovered": float(self.amount_recovered or 0),

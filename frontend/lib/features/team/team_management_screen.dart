@@ -24,6 +24,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen> {
   int? _selectedRoleId;
   bool _planAccess = false;
   bool _includeInactive = false;
+  bool _showInactiveRoles = false;
   String _sortBy = 'full_name';
   String _sortOrder = 'asc';
   bool _isLoading = false;
@@ -436,24 +437,35 @@ class _TeamManagementScreenState extends State<TeamManagementScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            if (_roles.isEmpty)
-              const Text('No roles configured yet')
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final role in _roles)
-                    ActionChip(
-                      avatar: Icon(
-                        role['is_active'] == true ? Icons.check_circle_outline : Icons.block,
-                        size: 18,
+            FilterChip(
+              label: const Text('Show inactive roles'),
+              selected: _showInactiveRoles,
+              onSelected: (value) => setState(() => _showInactiveRoles = value),
+            ),
+            const SizedBox(height: 12),
+            Builder(
+              builder: (context) {
+                final visibleRoles = _showInactiveRoles ? _roles : _activeRoles;
+                if (visibleRoles.isEmpty) {
+                  return Text(_showInactiveRoles ? 'No roles configured yet' : 'No active roles. Toggle "Show inactive roles" to see hidden ones.');
+                }
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final role in visibleRoles)
+                      ActionChip(
+                        avatar: Icon(
+                          role['is_active'] == true ? Icons.check_circle_outline : Icons.block,
+                          size: 18,
+                        ),
+                        label: Text('${role['title']} - ${role['daily_pay_rate']}/day'),
+                        onPressed: () => _editRole(role),
                       ),
-                      label: Text('${role['title']} - ${role['daily_pay_rate']}/day'),
-                      onPressed: () => _editRole(role),
-                    ),
-                ],
-              ),
+                  ],
+                );
+              },
+            ),
           ],
         ),
       ),

@@ -71,7 +71,7 @@ class _TeamPayrollScreenState extends State<TeamPayrollScreen> {
   }
 
   Future<void> _showSickLeaveDialog() async {
-    String? employeeName = _members.isNotEmpty ? _members.first['full_name']?.toString() : null;
+    int? teamMemberId = _members.isNotEmpty ? _members.first['id'] as int? : null;
     DateTime startDate = DateTime.now();
     DateTime endDate = DateTime.now();
     final reasonController = TextEditingController();
@@ -90,15 +90,15 @@ class _TeamPayrollScreenState extends State<TeamPayrollScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      DropdownButtonFormField<String>(
-                        initialValue: employeeName,
+                      DropdownButtonFormField<int>(
+                        initialValue: teamMemberId,
                         items: _members
                             .map((member) => DropdownMenuItem(
-                                  value: member['full_name']?.toString(),
+                                  value: member['id'] as int,
                                   child: Text(member['full_name']?.toString() ?? '-'),
                                 ))
                             .toList(),
-                        onChanged: (value) => setDialogState(() => employeeName = value),
+                        onChanged: (value) => setDialogState(() => teamMemberId = value),
                         decoration: const InputDecoration(labelText: 'Employee *'),
                       ),
                       const SizedBox(height: 16),
@@ -153,7 +153,7 @@ class _TeamPayrollScreenState extends State<TeamPayrollScreen> {
                 TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
                 FilledButton(
                   onPressed: () async {
-                    if (employeeName == null || employeeName!.isEmpty) {
+                    if (teamMemberId == null) {
                       ScaffoldMessenger.of(rootContext).showSnackBar(
                         const SnackBar(content: Text('Please choose an employee.')),
                       );
@@ -161,7 +161,7 @@ class _TeamPayrollScreenState extends State<TeamPayrollScreen> {
                     }
                     try {
                       await ApiRegistry.teamPayroll.createSickLeave(<String, dynamic>{
-                        'employee_name': employeeName,
+                        'team_member_id': teamMemberId,
                         'start_date': _toIsoDate(startDate),
                         'end_date': _toIsoDate(endDate),
                         'reason': reasonController.text.trim(),
@@ -214,7 +214,7 @@ class _TeamPayrollScreenState extends State<TeamPayrollScreen> {
   }
 
   Future<void> _showAdvanceDialog() async {
-    String? employeeName = _members.isNotEmpty ? _members.first['full_name']?.toString() : null;
+    int? teamMemberId = _members.isNotEmpty ? _members.first['id'] as int? : null;
     final amountController = TextEditingController();
     DateTime dueDate = DateTime.now().add(const Duration(days: 7));
     final noteController = TextEditingController();
@@ -233,15 +233,15 @@ class _TeamPayrollScreenState extends State<TeamPayrollScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      DropdownButtonFormField<String>(
-                        initialValue: employeeName,
+                      DropdownButtonFormField<int>(
+                        initialValue: teamMemberId,
                         items: _members
                             .map((member) => DropdownMenuItem(
-                                  value: member['full_name']?.toString(),
+                                  value: member['id'] as int,
                                   child: Text(member['full_name']?.toString() ?? '-'),
                                 ))
                             .toList(),
-                        onChanged: (value) => setDialogState(() => employeeName = value),
+                        onChanged: (value) => setDialogState(() => teamMemberId = value),
                         decoration: const InputDecoration(labelText: 'Employee *'),
                       ),
                       const SizedBox(height: 16),
@@ -285,7 +285,7 @@ class _TeamPayrollScreenState extends State<TeamPayrollScreen> {
                 FilledButton(
                   onPressed: () async {
                     final amount = double.tryParse(amountController.text.trim());
-                    if (employeeName == null || employeeName!.isEmpty || amount == null || amount <= 0) {
+                    if (teamMemberId == null || amount == null || amount <= 0) {
                       ScaffoldMessenger.of(rootContext).showSnackBar(
                         const SnackBar(content: Text('Choose an employee and enter a valid amount.')),
                       );
@@ -293,7 +293,7 @@ class _TeamPayrollScreenState extends State<TeamPayrollScreen> {
                     }
                     try {
                       await ApiRegistry.teamPayroll.createAdvance(<String, dynamic>{
-                        'employee_name': employeeName,
+                        'team_member_id': teamMemberId,
                         'amount': amount,
                         'due_date': _toIsoDate(dueDate),
                         'note': noteController.text.trim(),

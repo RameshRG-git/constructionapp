@@ -2,10 +2,11 @@ from datetime import date, datetime
 
 from sqlalchemy import and_, func, or_
 
-from flask import Blueprint, request
+from flask import Blueprint, abort, request
 
 from .response import created, ok
 from ..extensions.database import db
+from ..models.team_member import TeamMember
 from ..models.work_assignment import WorkAssignment
 from ..services.domain_rules import WorkStatus
 from ..services.tenancy import get_request_tenant_name
@@ -111,11 +112,22 @@ def list_workloads(site_id):
 def create_workload(site_id):
     tenant_name = get_request_tenant_name()
     payload = request.get_json(force=True)
+    member = TeamMember.query.filter(
+        TeamMember.id == payload.get("team_member_id"),
+        TeamMember.tenant_name == tenant_name,
+    ).first()
+    if member is None:
+        abort(400, "A valid team_member_id is required")
     period_start_raw = payload.get("period_start_date") or payload.get("week_start_date") or payload.get("due_date")
     period_end_raw = payload.get("period_end_date") or payload.get("week_end_date") or period_start_raw
     week_start_date = datetime.fromisoformat(period_start_raw).date() if period_start_raw else None
     week_end_date = datetime.fromisoformat(period_end_raw).date() if period_end_raw else week_start_date
     due_date = datetime.fromisoformat(payload.get("due_date") or period_end_raw or period_start_raw).date()
+    work_day_fraction = float(payload.get("work_day_fraction", 1))
+    if work_day_fraction not in (0.5, 1.0):
+        abort(400, "work_day_fraction must be 0.5 or 1")
+    if week_start_date != week_end_date and work_day_fraction != 1.0:
+        abort(400, "Half-day is only supported for a single-day workload")
 
     effective_status = WorkStatus(payload.get("status", WorkStatus.OPEN))
     if week_end_date and week_end_date < date.today():
@@ -124,8 +136,9 @@ def create_workload(site_id):
     assignment = WorkloadService.create_assignment(
         tenant_name=tenant_name,
         site_id=site_id,
+        team_member_id=member.id,
         assignee_type=payload["assignee_type"],
-        assignee_name=payload["assignee_name"],
+        assignee_name=member.full_name,
         title=payload["title"],
         description=payload.get("description"),
         priority=payload.get("priority", "normal"),
@@ -134,6 +147,7 @@ def create_workload(site_id):
         week_end_date=week_end_date,
         due_date=due_date,
         estimated_hours=payload.get("estimated_hours"),
+        work_day_fraction=work_day_fraction,
         paid_amount=payload.get("paid_amount", 0),
     )
     return created(assignment.to_dict())
@@ -148,7 +162,17 @@ def update_workload(assignment_id):
         WorkAssignment.tenant_name == tenant_name,
     ).first_or_404()
 
-    for key in ["assignee_type", "assignee_name", "title", "description", "priority", "paid_amount"]:
+    if "team_member_id" in payload:
+        member = TeamMember.query.filter(
+            TeamMember.id == payload["team_member_id"],
+            TeamMember.tenant_name == tenant_name,
+        ).first()
+        if member is None:
+            abort(400, "A valid team_member_id is required")
+        assignment.team_member_id = member.id
+        assignment.assignee_name = member.full_name
+
+    for key in ["assignee_type", "title", "description", "priority", "paid_amount"]:
         if key in payload:
             setattr(assignment, key, payload[key])
 
@@ -166,9 +190,16 @@ def update_workload(assignment_id):
         assignment.week_end_date = datetime.fromisoformat(payload["period_end_date"]).date() if payload["period_end_date"] else None
     if "estimated_hours" in payload:
         assignment.estimated_hours = payload["estimated_hours"]
+    if "work_day_fraction" in payload:
+        work_day_fraction = float(payload["work_day_fraction"])
+        if work_day_fraction not in (0.5, 1.0):
+            abort(400, "work_day_fraction must be 0.5 or 1")
+        assignment.work_day_fraction = work_day_fraction
 
     if assignment.week_start_date and not assignment.week_end_date:
         assignment.week_end_date = assignment.week_start_date
+    if assignment.week_start_date != assignment.week_end_date and float(assignment.work_day_fraction or 1) != 1.0:
+        abort(400, "Half-day is only supported for a single-day workload")
     if assignment.week_end_date and assignment.week_end_date < date.today():
         assignment.status = WorkStatus.COMPLETED
 

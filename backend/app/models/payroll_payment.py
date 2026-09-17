@@ -11,6 +11,7 @@ class PayrollPayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tenant_name = db.Column(db.String(120), nullable=False, index=True)
     site_id = db.Column(db.Integer, db.ForeignKey("sites.id"), nullable=False)
+    team_member_id = db.Column(db.Integer, db.ForeignKey("team_members.id"), nullable=False, index=True)
     employee_name = db.Column(db.String(255), nullable=False)
     role_title = db.Column(db.String(120), nullable=True)
     week_start_date = db.Column(db.Date, nullable=False, index=True)
@@ -31,8 +32,8 @@ class PayrollPayment(db.Model):
             "tenant_name",
             "site_id",
             "week_start_date",
-            "employee_name",
-            name="uq_payroll_payments_tenant_site_week_employee",
+            "team_member_id",
+            name="uq_payroll_payments_tenant_site_week_member",
         ),
     )
 
@@ -41,6 +42,7 @@ class PayrollPayment(db.Model):
             "id": self.id,
             "tenant_name": self.tenant_name,
             "site_id": self.site_id,
+            "team_member_id": self.team_member_id,
             "employee_name": self.employee_name,
             "role_title": self.role_title,
             "week_start_date": self.week_start_date.isoformat() if self.week_start_date else None,

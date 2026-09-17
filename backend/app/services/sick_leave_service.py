@@ -16,11 +16,11 @@ class SickLeaveService:
         db.session.commit()
 
     @staticmethod
-    def sick_dates_for_employee(tenant_name, employee_name, window_start, window_end):
+    def sick_dates_for_member(tenant_name, team_member_id, window_start, window_end):
         """Set of sick dates for the employee that overlap [window_start, window_end]."""
         leaves = SickLeave.query.filter(
             SickLeave.tenant_name == tenant_name,
-            SickLeave.employee_name == employee_name,
+            SickLeave.team_member_id == team_member_id,
             SickLeave.start_date <= window_end,
             SickLeave.end_date >= window_start,
         ).all()

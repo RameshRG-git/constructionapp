@@ -37,16 +37,19 @@ def list_payroll_weeks(site_id):
 def record_payroll_payment(site_id):
     tenant_name = get_request_tenant_name()
     payload = request.get_json(force=True)
-    employee_name = (payload.get("employee_name") or "").strip()
-    if not employee_name:
-        abort(400, "employee_name is required")
+    team_member_id = payload.get("team_member_id")
+    if not isinstance(team_member_id, int):
+        abort(400, "team_member_id is required")
 
     week_start = parse_week_start(payload.get("week_start"))
     snapshot = PayrollService.week_payroll(tenant_name, site_id, week_start)
     row = next(
-        (item for item in snapshot["items"] if item["employee_name"].lower() == employee_name.lower()),
+        (item for item in snapshot["items"] if item["team_member_id"] == team_member_id),
         None,
     )
+    if row is None:
+        abort(400, "No payroll workload exists for this team member and week")
+    employee_name = row["employee_name"]
 
     earned = float(payload.get("earned_amount", row["earned_amount"] if row else 0))
     default_pay = row["net_payable_amount"] if row else earned
@@ -65,6 +68,7 @@ def record_payroll_payment(site_id):
         tenant_name,
         site_id,
         week_start,
+        team_member_id,
         employee_name,
         earned_amount=earned,
         role_title=payload.get("role_title") or (row["role_title"] if row else None),
@@ -98,6 +102,7 @@ def pay_all_payroll(site_id):
             tenant_name,
             site_id,
             week_start,
+            row["team_member_id"],
             row["employee_name"],
             earned_amount=row["earned_amount"],
             role_title=row["role_title"],

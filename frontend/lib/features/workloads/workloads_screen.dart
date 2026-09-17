@@ -191,10 +191,11 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
     DateTime periodStartDate = existingStart == null || existingStart.isEmpty ? DateTime.now() : DateTime.parse(existingStart);
     DateTime periodEndDate = existingEnd == null || existingEnd.isEmpty ? periodStartDate : DateTime.parse(existingEnd);
     String mode = periodStartDate == periodEndDate ? 'day' : 'days';
+    bool isHalfDay = mode == 'day' && (existing?['work_day_fraction'] as num? ?? 1).toDouble() == 0.5;
 
     final periodStartController = TextEditingController(text: _formatDate(periodStartDate));
     final periodEndController = TextEditingController(text: _formatDate(periodEndDate));
-    int? selectedMemberId;
+    int? selectedMemberId = existing?['team_member_id'] as int?;
     int? selectedRoleId = _roleIdByTitle(existing?['assignee_type']?.toString());
     for (final member in _teamMembers) {
       if ((member['full_name']?.toString() ?? '') == assigneeNameController.text.trim()) {
@@ -219,7 +220,8 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
             final selectedRole = _roleById(selectedRoleId);
             final dayRate = _roleDayRate(selectedRole);
             final dayCount = periodEndDate.difference(periodStartDate).inDays + 1;
-            final projectedCost = dayRate <= 0 ? null : (dayRate * dayCount);
+            final workDays = mode == 'day' && isHalfDay ? 0.5 : dayCount.toDouble();
+            final projectedCost = dayRate <= 0 ? null : (dayRate * workDays);
 
             return AlertDialog(
               title: Text(existing == null ? 'Add Workload' : 'Edit Workload'),
@@ -308,10 +310,22 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
                             if (mode == 'day') {
                               periodEndDate = periodStartDate;
                               periodEndController.text = _formatDate(periodEndDate);
+                            } else {
+                              isHalfDay = false;
                             }
                           });
                         },
                       ),
+                      if (mode == 'day') ...[
+                        const SizedBox(height: 8),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Half day'),
+                          subtitle: const Text('Records 0.5 workday and half of the daily pay rate'),
+                          value: isHalfDay,
+                          onChanged: (value) => setDialogState(() => isHalfDay = value),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       TextField(
                         controller: periodStartController,
@@ -400,9 +414,11 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
                     }
 
                     final dayCount = normalizedEnd.difference(normalizedStart).inDays + 1;
+                    final workDayFraction = mode == 'day' && isHalfDay ? 0.5 : 1.0;
+                    final payableDays = mode == 'day' ? workDayFraction : dayCount.toDouble();
                     final selectedRole = _roleById(selectedRoleId);
                     final roleTitle = selectedRole?['title']?.toString() ?? selectedMember?['job_title']?.toString() ?? 'team';
-                    final paidAmount = _roleDayRate(selectedRole) * dayCount;
+                    final paidAmount = _roleDayRate(selectedRole) * payableDays;
                     final today = DateTime.now();
                     final todayDate = DateTime(today.year, today.month, today.day);
                     final effectiveStatus = normalizedEnd.isBefore(todayDate)
@@ -411,13 +427,14 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
 
                     final payload = <String, dynamic>{
                       'assignee_type': roleTitle,
-                      'assignee_name': assigneeNameController.text.trim(),
+                      'team_member_id': selectedMemberId,
                       'title': workloadTitleController.text.trim(),
                       'status': effectiveStatus,
                       'period_start_date': _toIsoDate(normalizedStart),
                       'period_end_date': _toIsoDate(normalizedEnd),
                       'due_date': _toIsoDate(normalizedEnd),
-                      'estimated_hours': 8,
+                      'estimated_hours': workDayFraction == 0.5 ? 4 : 8,
+                      'work_day_fraction': workDayFraction,
                       'paid_amount': paidAmount,
                     };
                     if (existing == null) {
@@ -639,11 +656,12 @@ class _WorkloadsScreenState extends State<WorkloadsScreen> {
                             separatorBuilder: (_, __) => const Divider(height: 1),
                             itemBuilder: (context, index) {
                               final item = _items[index];
+                              final isHalfDay = (item['work_day_fraction'] as num? ?? 1).toDouble() == 0.5;
                               return ListTile(
                                 leading: const Icon(Icons.groups_2_outlined),
                                 title: Text(item['title']?.toString() ?? '-'),
                                 subtitle: Text(
-                                  '${item['assignee_name'] ?? '-'} • ${_displayDateFromIso(item['week_start_date']?.toString() ?? '')} - ${_displayDateFromIso(item['week_end_date']?.toString() ?? '')} • Paid: ${item['paid_amount'] ?? 0}',
+                                  '${item['assignee_name'] ?? '-'} • ${_displayDateFromIso(item['week_start_date']?.toString() ?? '')} - ${_displayDateFromIso(item['week_end_date']?.toString() ?? '')}${isHalfDay ? ' • Half day' : ''} • Paid: ${item['paid_amount'] ?? 0}',
                                 ),
                                 trailing: Wrap(
                                   spacing: 8,

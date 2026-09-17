@@ -10,6 +10,7 @@ class WorkAssignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tenant_name = db.Column(db.String(120), nullable=False, index=True)
     site_id = db.Column(db.Integer, db.ForeignKey("sites.id"), nullable=False)
+    team_member_id = db.Column(db.Integer, db.ForeignKey("team_members.id"), nullable=False, index=True)
     assignee_type = db.Column(db.String(40), nullable=False)
     assignee_name = db.Column(db.String(255), nullable=False)
     title = db.Column(db.String(255), nullable=False)
@@ -20,6 +21,7 @@ class WorkAssignment(db.Model):
     week_end_date = db.Column(db.Date, nullable=True)
     due_date = db.Column(db.Date, nullable=False)
     estimated_hours = db.Column(db.Numeric(8, 2), nullable=True)
+    work_day_fraction = db.Column(db.Numeric(3, 2), nullable=False, default=1)
     paid_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -29,6 +31,7 @@ class WorkAssignment(db.Model):
             "id": self.id,
             "tenant_name": self.tenant_name,
             "site_id": self.site_id,
+            "team_member_id": self.team_member_id,
             "assignee_type": self.assignee_type,
             "assignee_name": self.assignee_name,
             "title": self.title,
@@ -39,5 +42,6 @@ class WorkAssignment(db.Model):
             "week_end_date": self.week_end_date.isoformat() if self.week_end_date else None,
             "due_date": self.due_date.isoformat() if self.due_date else None,
             "estimated_hours": float(self.estimated_hours or 0),
+            "work_day_fraction": float(self.work_day_fraction or 1),
             "paid_amount": float(self.paid_amount or 0),
         }

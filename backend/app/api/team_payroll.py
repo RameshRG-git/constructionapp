@@ -7,6 +7,7 @@ from ..extensions.database import db
 from ..models.advance_recovery import AdvanceRecovery
 from ..models.employee_advance import EmployeeAdvance
 from ..models.sick_leave import SickLeave
+from ..models.team_member import TeamMember
 from ..services.advance_service import AdvanceService
 from ..services.sick_leave_service import SickLeaveService
 from ..services.tenancy import get_request_tenant_name
@@ -32,9 +33,12 @@ def list_sick_leaves():
 def create_sick_leave():
     tenant_name = get_request_tenant_name()
     payload = request.get_json(force=True)
-    employee_name = (payload.get("employee_name") or "").strip()
-    if not employee_name:
-        abort(400, "employee_name is required")
+    member = TeamMember.query.filter(
+        TeamMember.id == payload.get("team_member_id"),
+        TeamMember.tenant_name == tenant_name,
+    ).first()
+    if member is None:
+        abort(400, "A valid team_member_id is required")
 
     start_date = datetime.fromisoformat(payload["start_date"]).date()
     end_date = datetime.fromisoformat(payload.get("end_date") or payload["start_date"]).date()
@@ -43,7 +47,8 @@ def create_sick_leave():
 
     leave = SickLeaveService.create(
         tenant_name=tenant_name,
-        employee_name=employee_name,
+        team_member_id=member.id,
+        employee_name=member.full_name,
         start_date=start_date,
         end_date=end_date,
         reason=payload.get("reason"),
@@ -83,15 +88,19 @@ def list_advances():
 def create_advance():
     tenant_name = get_request_tenant_name()
     payload = request.get_json(force=True)
-    employee_name = (payload.get("employee_name") or "").strip()
-    if not employee_name:
-        abort(400, "employee_name is required")
+    member = TeamMember.query.filter(
+        TeamMember.id == payload.get("team_member_id"),
+        TeamMember.tenant_name == tenant_name,
+    ).first()
+    if member is None:
+        abort(400, "A valid team_member_id is required")
     if not payload.get("due_date"):
         abort(400, "due_date is required")
 
     advance = AdvanceService.create(
         tenant_name=tenant_name,
-        employee_name=employee_name,
+        team_member_id=member.id,
+        employee_name=member.full_name,
         amount=payload["amount"],
         granted_on=datetime.fromisoformat(payload["granted_on"]).date() if payload.get("granted_on") else datetime.utcnow().date(),
         due_date=datetime.fromisoformat(payload["due_date"]).date(),
