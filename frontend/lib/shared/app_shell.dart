@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../app/router.dart';
 import 'api_registry.dart';
 import 'auth_scope.dart';
 import 'tenant_branding.dart';
-
-const _appVersion = '0.1.1';
-const _buildNumber = '2';
 
 class AppShell extends StatefulWidget {
   final String title;
@@ -26,11 +24,25 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   Future<Map<String, dynamic>>? _tenantFuture;
+  String _appVersion = '';
+  String _buildNumber = '';
 
   @override
   void initState() {
     super.initState();
-    _tenantFuture = ApiRegistry.tenants.getCurrentTenant();
+    _tenantFuture = TenantInfoCache.load(ApiRegistry.tenants.getCurrentTenant);
+    _loadPackageInfo();
+  }
+
+  Future<void> _loadPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _appVersion = info.version;
+      _buildNumber = info.buildNumber;
+    });
   }
 
   static const _destinations = <({String route, IconData icon, String label})>[
@@ -167,13 +179,13 @@ class _AppShellState extends State<AppShell> {
                                     children: [
                                       Text(auth.displayName),
                                       const SizedBox(height: 2),
-                                      const Text(
-                                        'App version: $_appVersion',
-                                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                      Text(
+                                        'App version: ${_appVersion.isEmpty ? '...' : _appVersion}',
+                                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                                       ),
-                                      const Text(
-                                        'Build Number: $_buildNumber',
-                                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                      Text(
+                                        'Build Number: ${_buildNumber.isEmpty ? '...' : _buildNumber}',
+                                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                                       ),
                                     ],
                                   ),

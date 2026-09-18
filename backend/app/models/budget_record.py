@@ -11,6 +11,7 @@ class BudgetRecord(db.Model):
     tenant_name = db.Column(db.String(120), nullable=False, index=True)
     site_id = db.Column(db.Integer, db.ForeignKey("sites.id"), nullable=False)
     category_name = db.Column(db.String(255), nullable=True)
+    entry_type = db.Column(db.String(20), nullable=False, default="allocation")
     transaction_type = db.Column(db.String(40), nullable=False, default="cash")
     comments = db.Column(db.Text, nullable=True)
     planned_amount = db.Column(db.Numeric(14, 2), nullable=False, default=0)
@@ -27,6 +28,7 @@ class BudgetRecord(db.Model):
             "tenant_name": self.tenant_name,
             "site_id": self.site_id,
             "category_name": self.category_name,
+            "entry_type": self.entry_type,
             "transaction_type": self.transaction_type,
             "comments": self.comments,
             "planned_amount": float(self.planned_amount or 0),

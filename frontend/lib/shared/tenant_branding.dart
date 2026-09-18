@@ -14,3 +14,19 @@ String? resolveTenantLogoAsset(String? tenantSlug) {
   }
   return tenantLogoAssets[tenantSlug.trim().toLowerCase()];
 }
+
+/// Caches the current-tenant fetch app-wide so navigating between screens
+/// (which recreates AppShell) reuses the already-resolved data instead of
+/// re-fetching and flashing the default branding while it reloads.
+class TenantInfoCache {
+  static Future<Map<String, dynamic>>? _future;
+
+  static Future<Map<String, dynamic>> load(Future<Map<String, dynamic>> Function() fetch) {
+    return _future ??= fetch();
+  }
+
+  /// Call after tenant settings (name/logo) are edited so the next load refetches.
+  static void invalidate() {
+    _future = null;
+  }
+}

@@ -20,6 +20,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   double _actualTotal = 0;
   double _payrollTotal = 0;
   double _inventoryExpenseTotal = 0;
+  double _miscExpenseTotal = 0;
   double _totalExpense = 0;
   double _remainingBudget = 0;
 
@@ -72,6 +73,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
         _actualTotal = (summary['actual_total'] as num?)?.toDouble() ?? 0;
         _payrollTotal = (summary['payroll_total'] as num?)?.toDouble() ?? 0;
         _inventoryExpenseTotal = (summary['inventory_expense_total'] as num?)?.toDouble() ?? 0;
+        _miscExpenseTotal = (summary['misc_expense_total'] as num?)?.toDouble() ?? 0;
         _totalExpense = (summary['total_expense'] as num?)?.toDouble() ?? 0;
         _remainingBudget = (summary['remaining_budget'] as num?)?.toDouble() ?? 0;
       });
@@ -86,10 +88,12 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     }
   }
 
-  Future<void> _showBudgetDialog({Map<String, dynamic>? existing}) async {
+  Future<void> _showBudgetDialog({Map<String, dynamic>? existing, String entryType = 'allocation'}) async {
     if (_siteId == null) {
       return;
     }
+    final effectiveType = existing?['entry_type']?.toString() ?? entryType;
+    final isExpense = effectiveType == 'expense';
 
     final categoryController = TextEditingController(text: existing?['category_name']?.toString() ?? '');
     final actualController = TextEditingController(text: existing?['actual_amount']?.toString() ?? '0');
@@ -103,7 +107,11 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(existing == null ? 'Add Budget' : 'Edit Budget'),
+              title: Text(
+                existing == null
+                    ? (isExpense ? 'Add Misc Expense' : 'Add Budget')
+                    : (isExpense ? 'Edit Misc Expense' : 'Edit Budget'),
+              ),
               content: SizedBox(
                 width: 420,
                 child: SingleChildScrollView(
@@ -117,7 +125,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                       const SizedBox(height: 16),
                       TextField(
                         controller: actualController,
-                        decoration: const InputDecoration(labelText: 'Actual Amount'),
+                        decoration: InputDecoration(labelText: isExpense ? 'Expense Amount' : 'Actual Amount'),
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
@@ -171,6 +179,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                     final actualAmount = double.tryParse(actualController.text.trim()) ?? 0;
                     final payload = <String, dynamic>{
                       'category_name': categoryController.text.trim(),
+                      'entry_type': effectiveType,
                       // Keep planned aligned with actual while planned is hidden from the UI.
                       'planned_amount': actualAmount,
                       'actual_amount': actualAmount,
@@ -203,12 +212,13 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   }
 
   Future<void> _deleteBudget(Map<String, dynamic> item) async {
+    final isExpense = item['entry_type']?.toString() == 'expense';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Delete Budget'),
-          content: Text('Delete ${item['category_name'] ?? 'this budget'}? This action cannot be undone.'),
+          title: Text(isExpense ? 'Delete Expense' : 'Delete Budget'),
+          content: Text('Delete ${item['category_name'] ?? (isExpense ? 'this expense' : 'this budget')}? This action cannot be undone.'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
             FilledButton(
@@ -252,6 +262,12 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
         Row(
           children: [
             Expanded(child: Text('Budgets and Reporting', style: theme.textTheme.headlineMedium)),
+            OutlinedButton.icon(
+              onPressed: _siteId == null ? null : () => _showBudgetDialog(entryType: 'expense'),
+              icon: const Icon(Icons.remove_circle_outline),
+              label: const Text('Add Expense'),
+            ),
+            const SizedBox(width: 8),
             FilledButton.icon(
               onPressed: _siteId == null ? null : () => _showBudgetDialog(),
               icon: const Icon(Icons.add),
@@ -284,6 +300,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
               Chip(label: Text('Actual: ${_actualTotal.toStringAsFixed(2)}')),
               Chip(label: Text('Workload Expense: ${_payrollTotal.toStringAsFixed(2)}')),
               Chip(label: Text('Materials Value: ${_inventoryExpenseTotal.toStringAsFixed(2)}')),
+              Chip(label: Text('Misc Expenses: ${_miscExpenseTotal.toStringAsFixed(2)}')),
               Chip(label: Text('Total Expense: ${_totalExpense.toStringAsFixed(2)}')),
             ],
           ),
@@ -336,11 +353,16 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                   ? '-'
                                   : '${recordedDate.year}-${recordedDate.month.toString().padLeft(2, '0')}-${recordedDate.day.toString().padLeft(2, '0')}';
                               final comments = item['comments']?.toString() ?? '';
+                              final isExpense = item['entry_type']?.toString() == 'expense';
                               return ListTile(
+                                leading: Icon(
+                                  isExpense ? Icons.arrow_circle_down_rounded : Icons.arrow_circle_up_rounded,
+                                  color: isExpense ? const Color(0xFFB91C1C) : const Color(0xFF15803D),
+                                ),
                                 title: Text(item['category_name']?.toString() ?? '-'),
                                 subtitle: Text(
-                                  'Planned ${item['planned_amount']} • Actual ${item['actual_amount']} • Remaining ${item['remaining_amount']}\n'
-                                  '${item['transaction_type'] ?? '-'} • $dateLabel'
+                                  (isExpense ? 'Expense ${item['actual_amount']}' : 'Planned ${item['planned_amount']} • Actual ${item['actual_amount']} • Remaining ${item['remaining_amount']}') +
+                                  '\n${item['transaction_type'] ?? '-'} • $dateLabel'
                                   '${comments.isNotEmpty ? ' • $comments' : ''}',
                                 ),
                                 isThreeLine: true,

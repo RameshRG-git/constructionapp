@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from flask import Blueprint, request
+from flask import Blueprint, abort, request
 
 from .response import created, ok
 from ..extensions.database import db
@@ -37,7 +37,12 @@ def list_budgets(site_id):
     items = sorted(items, key=sort_fn, reverse=sort_order == "desc")
 
     planned_total = sum(float(item.planned_amount or 0) for item in items)
-    actual_total = sum(float(item.actual_amount or 0) for item in items)
+    actual_total = sum(
+        float(item.actual_amount or 0) for item in items if item.entry_type != "expense"
+    )
+    misc_expense_total = sum(
+        float(item.actual_amount or 0) for item in items if item.entry_type == "expense"
+    )
     payroll_total = sum(
         float(item.paid_amount or 0)
         for item in WorkAssignment.query.filter(
@@ -52,7 +57,7 @@ def list_budgets(site_id):
             InventoryItem.tenant_name == tenant_name,
         ).all()
     )
-    total_expense = payroll_total + inventory_expense_total
+    total_expense = payroll_total + inventory_expense_total + misc_expense_total
     remaining_budget = actual_total - total_expense
 
     return ok(
@@ -62,6 +67,7 @@ def list_budgets(site_id):
                 "actual_total": actual_total,
                 "payroll_total": payroll_total,
                 "inventory_expense_total": inventory_expense_total,
+                "misc_expense_total": misc_expense_total,
                 "total_expense": total_expense,
                 "remaining_budget": remaining_budget,
                 "variance": total_expense - planned_total,
@@ -75,6 +81,9 @@ def list_budgets(site_id):
 def create_budget_record(site_id):
     tenant_name = get_request_tenant_name()
     payload = request.get_json(force=True)
+    entry_type = payload.get("entry_type", "allocation")
+    if entry_type not in ("allocation", "expense"):
+        abort(400, "entry_type must be 'allocation' or 'expense'")
     planned_amount = payload.get("planned_amount", 0)
     actual_amount = payload.get("actual_amount", 0)
     remaining_amount = payload.get("remaining_amount", planned_amount - actual_amount)
@@ -92,6 +101,7 @@ def create_budget_record(site_id):
         tenant_name=tenant_name,
         site_id=site_id,
         category_name=payload.get("category_name"),
+        entry_type=entry_type,
         transaction_type=payload.get("transaction_type", "cash"),
         comments=payload.get("comments"),
         planned_amount=planned_amount,
@@ -115,6 +125,11 @@ def update_budget_record(budget_id):
     for key in ["category_name", "planned_amount", "actual_amount", "remaining_amount", "transaction_type", "comments"]:
         if key in payload:
             setattr(record, key, payload[key])
+
+    if "entry_type" in payload:
+        if payload["entry_type"] not in ("allocation", "expense"):
+            abort(400, "entry_type must be 'allocation' or 'expense'")
+        record.entry_type = payload["entry_type"]
 
     if "budget_status" in payload:
         record.budget_status = BudgetStatus(payload["budget_status"])
