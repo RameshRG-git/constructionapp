@@ -10,8 +10,9 @@ Enable site managers, site operations, warehouse staff, and finance reviewers to
 
 - Track construction sites from planning to closure.
 - Keep materials levels accurate and highlight low-stock risks early.
-- Balance team workload with day/date-range assignment visibility.
-- Monitor budget health by treating workload payments and materials value as expenses.
+- Balance team workload with day/date-range assignment visibility, including half-day entries.
+- Monitor budget health by treating workload payments, materials value, and miscellaneous expenses
+  as expenses against budget allocations.
 - Standardize labor planning with tenant-specific role/day-rate catalogs.
 - Process weekly site payroll from workload data, excluding sick-leave days and tracking advance recovery.
 - Give each user secure, role-appropriate access to their own tenant workspace.
@@ -21,8 +22,9 @@ Enable site managers, site operations, warehouse staff, and finance reviewers to
 
 - Site CRUD, status updates, search, and closure.
 - Tenant-aware materials tracking with unit cost, stock adjustments, and list filters.
-- Work assignment tracking with day/date-range support and history search.
-- Budget records with workload expense, materials value, total expense, and remaining budget.
+- Work assignment tracking with day/date-range and half-day support, plus history search.
+- Budget records with workload expense, materials value, miscellaneous expenses, total expense, and
+  remaining budget.
 - Budget transaction type, comments, and user-selected transaction date.
 - Team member management and role/day-rate catalog management.
 - Team Payroll controls for employee sick leave and salary advances.

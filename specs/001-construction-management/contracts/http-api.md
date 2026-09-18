@@ -85,21 +85,29 @@ Query parameters for workload list:
 - `sort_by` (`week_start_date`, `due_date`, `priority`, `assignee_name`, `status`)
 - `sort_order` (`asc`, `desc`)
 
+Work assignments are keyed to a team member by `team_member_id` (required on create; the server
+resolves the display name from that member, ignoring any client-supplied name). `work_day_fraction`
+is `1.0` by default, or `0.5` for a half day; half days are only accepted when the workload is a
+single day (`week_start_date` equals `week_end_date`).
+
 ### Budgets
 - `GET /sites/{site_id}/budgets` - list budget records and summary
 - `POST /sites/{site_id}/budgets` - create a budget record
 - `PATCH /budgets/{budget_id}` - update amounts, transaction metadata, or recorded date
 - `DELETE /budgets/{budget_id}` - delete budget record
 
-Budget records include `category_name`, `transaction_type` (`cash`, `bank_transfer`, `upi`,
-`cheque`, `other`), `comments`, and `recorded_at` (the user-selected transaction date).
+Budget records include `category_name`, `entry_type` (`allocation` or `expense`), `transaction_type`
+(`cash`, `bank_transfer`, `upi`, `cheque`, `other`), `comments`, and `recorded_at` (the user-selected
+transaction date). `entry_type` defaults to `allocation`; use `expense` for miscellaneous costs not
+tied to a workload or inventory item (e.g. transport, permits, tool rental).
 
 Budget summary payload includes:
 - `planned_total`
-- `actual_total`
+- `actual_total` - sum of `allocation`-type actual amounts (funds planned/received)
 - `payroll_total` - workload expense across all assignment statuses
 - `inventory_expense_total` - materials value across site inventory
-- `total_expense` - `payroll_total + inventory_expense_total`
+- `misc_expense_total` - sum of `expense`-type actual amounts
+- `total_expense` - `payroll_total + inventory_expense_total + misc_expense_total`
 - `remaining_budget` - `actual_total - total_expense`
 - `variance` - `total_expense - planned_total`
 
@@ -130,6 +138,9 @@ due advances are recovered FIFO by due date from net weekly earnings; recovery i
 week's net earnings and the remaining balance carries forward. Recovery is committed only when a
 payment is first recorded for that employee/week.
 
+Payroll payments, sick leaves, and advances are identified by `team_member_id` (required in request
+payloads), not by name; the server resolves and snapshots the member's current display name.
+
 ### Tenant Management
 - `GET /tenants` - list tenants
 - `POST /tenants` - create tenant
@@ -156,11 +167,13 @@ Supported access roles: `admin`, `tenant_admin`, `project_management`, `site_ope
 ## Validation Expectations
 - Site creation requires name, site location, owner, planned start date, and planned end date.
 - Inventory transactions require a valid transaction type and a non-zero quantity delta.
-- Work assignments require assignee, title, and due date/period fields.
-- Budget records require non-negative planned and actual amounts.
+- Work assignments require a valid `team_member_id`, title, and due date/period fields;
+  `work_day_fraction` of `0.5` is only valid for a single-day workload.
+- Budget records require non-negative planned and actual amounts and `entry_type` of `allocation`
+  or `expense`.
 - Team members require full_name, job_title, and daily_pay_rate.
-- Sick leaves require employee_name, start_date, and an end date not before the start date.
-- Advances require employee_name, a positive amount, and due_date.
+- Sick leaves require a valid `team_member_id`, start_date, and an end date not before the start date.
+- Advances require a valid `team_member_id`, a positive amount, and due_date.
 - Team role rates require title and daily_pay_rate.
 - Users require a unique username (minimum 3 characters), unique valid email, full name, and a
   password of at least 8 characters stored only as a hash.

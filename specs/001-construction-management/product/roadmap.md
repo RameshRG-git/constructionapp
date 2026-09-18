@@ -73,6 +73,14 @@ This roadmap follows the existing implementation sequence for the construction m
 - Preserve an advance-recovery ledger to prevent duplicate deductions.
 - Add budget transaction type, comments, and editable transaction date.
 
+## Phase 11: Relational Integrity, Half-Day Workloads, and Misc Expense (Delivered)
+
+- Relate work assignments, sick leave, advances, recoveries, and payroll payments to a team member
+  by ID so renaming a member no longer disconnects historical records.
+- Support half-day workloads (proportional pay and hours) for single-day entries.
+- Add a budget entry type (allocation or expense) so miscellaneous site costs are tracked alongside
+  budget allocations and reflected in total expense and remaining budget.
+
 ## Delivery Strategy
 
 - Ship in incremental slices aligned with user stories.

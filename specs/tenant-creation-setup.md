@@ -23,6 +23,11 @@ This guide explains how to create and activate tenants in the Construction Manag
   - `schema_name` (for schema namespace, e.g. `tenant_kaniskahomes`)
   - `table_prefix` (for table namespace conventions, e.g. `kaniskahomes_`)
   - branding (`logo_url`, `primary_color`, `secondary_color`)
+- A tenant's logo can instead be bundled into the Flutter app at
+  `frontend/assets/tenants/<slug>/logo.png` and registered in `tenantLogoAssets`
+  (`frontend/lib/shared/tenant_branding.dart`); when present, the bundled asset takes precedence over
+  `logo_url` and avoids a network fetch. `logo_url` remains the fallback for tenants without a
+  bundled asset.
 
 ## Backend Configuration
 
@@ -111,7 +116,8 @@ Capabilities:
 
 - Tenant schema is created on tenant creation for PostgreSQL deployments.
 - The frontend sends tenant context in every API call with `X-Tenant`.
-- To apply per-tenant branding, configure `logo_url`, `primary_color`, and `secondary_color`.
+- To apply per-tenant branding, configure `logo_url`, `primary_color`, and `secondary_color`, or add
+  a bundled logo asset (see Multi-Tenant Model above) for a sharper, offline-safe logo.
 - Team role/day-rate defaults are auto-seeded for a tenant the first time role catalog is requested.
 - After sign-in, the client activates the tenant from the user's first active mapping.
 - A new tenant is only reachable in the UI once at least one user is mapped to it.

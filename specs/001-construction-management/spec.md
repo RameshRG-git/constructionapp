@@ -4,7 +4,7 @@
 
 **Created**: 2026-05-18
 
-**Last Updated**: 2026-08-31
+**Last Updated**: 2026-09-18
 
 **Status**: Implemented and Iterating
 
@@ -149,36 +149,44 @@ and confirm Tenant Admin is visible only for a `tenant_admin` user.
   workload expense, materials value, total expense, and remaining budget in the budget summary.
 - **FR-014**: The system MUST capture a unit cost for materials and use it to calculate materials
   value as quantity multiplied by unit cost.
-- **FR-014**: The system MUST include Team Management with member CRUD-lite (create/list/update)
+- **FR-015**: The system MUST include Team Management with member CRUD-lite (create/list/update)
   and role/day-rate catalog management.
-- **FR-015**: The system MUST seed default role/day-rate entries for a tenant when none exist.
-- **FR-016**: The system MUST support delete operations for workload records, inventory records,
+- **FR-016**: The system MUST seed default role/day-rate entries for a tenant when none exist.
+- **FR-017**: The system MUST support delete operations for workload records, inventory records,
   and budget records.
-- **FR-017**: The system MUST preserve changes made to sites, inventory, work assignments, budget
+- **FR-018**: The system MUST preserve changes made to sites, inventory, work assignments, budget
   records, team members, and team roles.
-- **FR-018**: The system MUST show clear error feedback when a requested action cannot be completed.
-- **FR-019**: The system MUST provide searchable views for sites, inventory, assignments, and team
+- **FR-019**: The system MUST show clear error feedback when a requested action cannot be completed.
+- **FR-020**: The system MUST provide searchable views for sites, inventory, assignments, and team
   members.
-- **FR-020**: The system MUST keep a site summary that combines status, inventory risk, workload,
+- **FR-021**: The system MUST keep a site summary that combines status, inventory risk, workload,
   and budget variance in one place.
-- **FR-021**: The system MUST require authentication before any operational screen is reachable.
-- **FR-022**: The system MUST store user passwords only as hashes and never return them from the API.
-- **FR-023**: The system MUST allow administrators to create users and map users to tenants with an
+- **FR-022**: The system MUST require authentication before any operational screen is reachable.
+- **FR-023**: The system MUST store user passwords only as hashes and never return them from the API.
+- **FR-024**: The system MUST allow administrators to create users and map users to tenants with an
   access role.
-- **FR-024**: The system MUST activate the user's assigned tenant automatically after sign-in.
-- **FR-025**: The system MUST restrict tenant administration to users holding the `tenant_admin`
+- **FR-025**: The system MUST activate the user's assigned tenant automatically after sign-in.
+- **FR-026**: The system MUST restrict tenant administration to users holding the `tenant_admin`
   access role, enforced in both navigation and route entry.
-- **FR-026**: The system MUST calculate site payroll for Sunday-to-Saturday weeks from workload
+- **FR-027**: The system MUST calculate site payroll for Sunday-to-Saturday weeks from workload
   assignment dates and amounts.
-- **FR-027**: The system MUST exclude employee sick-leave dates from overlapping workload days,
+- **FR-028**: The system MUST exclude employee sick-leave dates from overlapping workload days,
   hours, and payroll amounts.
-- **FR-028**: The system MUST allow administrators to log, view, and remove employee sick leave.
-- **FR-029**: The system MUST allow administrators to record employee advances with a due date,
+- **FR-029**: The system MUST allow administrators to log, view, and remove employee sick leave.
+- **FR-030**: The system MUST allow administrators to record employee advances with a due date,
   recover due balances FIFO from weekly net pay, and carry any remaining balance forward.
-- **FR-030**: The system MUST preserve an auditable advance recovery entry per employee, advance,
+- **FR-031**: The system MUST preserve an auditable advance recovery entry per employee, advance,
   and payroll week and MUST NOT recover the same week twice.
-- **FR-031**: The system MUST allow budget records to capture transaction type, comments, and a
+- **FR-032**: The system MUST allow budget records to capture transaction type, comments, and a
   user-selected transaction date using the existing `recorded_at` field.
+- **FR-033**: The system MUST allow a workload to be recorded as a half day, applying half the daily
+  rate and half a day's worth of pay, only when the workload is a single day.
+- **FR-034**: The system MUST relate work assignments, sick leave, employee advances, advance
+  recoveries, and payroll payments to a team member by ID rather than by name, so renaming a team
+  member does not disconnect historical records.
+- **FR-035**: The system MUST allow budget records to be logged as either a budget allocation or a
+  miscellaneous expense, and MUST include miscellaneous expenses in total expense and remaining
+  budget calculations.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -187,9 +195,12 @@ and confirm Tenant Admin is visible only for a `tenant_admin` user.
   financial summary.
 - **Inventory Item**: A material or supply tracked for availability, usage, minimum quantity, and related
   site or storage location.
-- **Work Assignment**: A unit of work allocated to a person with a site, period, and status.
-- **Budget Record**: A planned and actual cost view for a site, including remaining budget and variance.
-- **Team Member**: A worker profile with job title and daily pay settings.
+- **Work Assignment**: A unit of work allocated to a person with a site, period, day fraction, and
+  status.
+- **Budget Record**: A planned/actual budget allocation or miscellaneous expense for a site, including
+  remaining budget and variance.
+- **Team Member**: A worker profile with job title and daily pay settings, identified by ID for
+  relating workloads, sick leave, advances, and payroll.
 - **Team Role Rate**: A reusable title/day-rate definition used by team and workload workflows.
 - **Payroll Payment**: A site employee payment for one Sunday-to-Saturday week, including gross pay,
   sick-day exclusion, advance recovery, net payable, and payment status.
@@ -214,6 +225,8 @@ and confirm Tenant Admin is visible only for a `tenant_admin` user.
 - **SC-006**: Users can delete unwanted workload, inventory, and budget rows with confirmation.
 - **SC-007**: A signed-in user reaches their assigned tenant workspace without manual tenant switching.
 - **SC-008**: Administration features are not reachable by users lacking the required access role.
+- **SC-009**: Miscellaneous site expenses are visible in the budget summary and reduce remaining
+  budget without requiring a separate report.
 
 ## Assumptions
 

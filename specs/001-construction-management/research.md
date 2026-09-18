@@ -76,6 +76,40 @@
 - Rationale: This preserves backward compatibility while supporting practical reconciliation without
   introducing a second date column.
 
+## Decision 7e: Team-Member Relational Key
+- Decision: Add `team_member_id` foreign keys to work assignments, sick leave, employee advances,
+  advance recoveries, and payroll payments, and match/aggregate payroll by that ID. Keep the existing
+  `employee_name` field as a point-in-time display snapshot rather than removing it.
+- Rationale: Matching by name silently breaks (or, worse, silently misattributes) records when an
+  employee is renamed or when two employees share a name. An ID-based key is immune to renames and
+  is the standard relational-integrity approach; the display name is still useful for historical
+  records without needing a join everywhere.
+- Alternatives considered: keep name-based matching with stricter uniqueness constraints (rejected -
+  still breaks on legitimate renames); normalize on a slug derived from the name (rejected - same
+  fragility as the raw name).
+
+## Decision 7f: Half-Day Workloads
+- Decision: Add `work_day_fraction` (`1.0` or `0.5`) to work assignments, restricted to single-day
+  workloads, and prorate both pay and hours accordingly in payroll calculations.
+- Rationale: Site admins need to record partial-day attendance without inventing a fractional date
+  range or a separate workload type.
+- Alternatives considered: allow arbitrary fractional values (rejected - adds validation complexity
+  for a need that is, in practice, binary); model half days as a separate entity (rejected - payroll
+  would need to merge two sources of truth per day).
+
+## Decision 7g: Miscellaneous Expense Tracking
+- Decision: Add `entry_type` (`allocation` or `expense`) to the existing budget record table instead
+  of introducing a separate expense model. `allocation` rows represent funds planned/received;
+  `expense` rows represent ad-hoc site costs not tied to a workload or inventory item. Both feed the
+  same total_expense/remaining_budget calculation.
+- Rationale: The existing budget record already carried category, transaction type, comments, and a
+  date - exactly what a misc-expense entry needs. Reusing it avoids duplicating CRUD, list, and
+  summary code for a conceptually similar ledger entry.
+- Alternatives considered: a separate MiscExpense model/table/screen (rejected - duplicates existing
+  plumbing for no material benefit); a single combined "Add Entry" dialog with a type toggle
+  (rejected in favor of keeping the existing "Add Budget" button untouched and adding a separate
+  "Add Expense" button, per explicit product direction).
+
 ## Decision 8: Testing Strategy
 - Decision: Use PyTest for backend coverage and Flutter tests for browser flows.
 - Rationale: This gives direct coverage over the critical CRUD and reporting paths while keeping the

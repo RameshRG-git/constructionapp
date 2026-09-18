@@ -86,10 +86,14 @@ Change the bootstrap password immediately after the first sign-in.
 - Create and update a site.
 - Add a materials item with unit cost, edit it, and delete it.
 - Add workload for one day and for a date range; verify older periods auto-complete.
+- Add a half-day workload (single day only) and verify it pays half the daily rate and half a day
+  toward payroll for that date.
 - Verify workloads default to the Open filter and that All includes completed records.
 - Add a budget record, verify summary totals (actual, workload expense, materials value, total
   expense, remaining), then delete a record.
 - Add a budget record with transaction type, date, and comments; edit and verify those fields.
+- Add a miscellaneous expense (Add Expense), verify it appears in Misc Expenses and reduces
+  remaining budget without changing the Actual (allocation) total.
 - Add team member and role/day-rate entry.
 - Open Team Management > Payroll, log sick leave overlapping a workload, and verify the affected
   days and pay are excluded in the site's Payments tab.
@@ -97,6 +101,8 @@ Change the bootstrap password immediately after the first sign-in.
   payment, and verify the recovery ledger and remaining advance balance.
 - Verify an advance larger than one week's net pay carries its remaining balance into a later week.
 - Verify repeating a payroll request does not create a second advance recovery.
+- Rename a team member and verify their prior workloads, sick leave, and payroll history remain
+  intact (matched by ID, not by the now-changed name).
 - Sign out and confirm protected routes redirect to login.
 
 ## CI/CD
@@ -142,6 +148,7 @@ sudo systemctl restart constructionapp-backend && curl -s -o /dev/null -w "api_h
 Fallback (if port 5000 is held by a stale process):
 
 ```bash
+sudo systemctl stop constructionapp-backend
 PID=$(lsof -tiTCP:5000 -sTCP:LISTEN)
 if [ -n "$PID" ]; then
 	kill "$PID"
@@ -149,8 +156,13 @@ fi
 cd /home/ubuntu/projects/constructionapp/backend
 source .venv/bin/activate
 FLASK_APP=app:create_app flask db upgrade
-FLASK_APP=app:create_app python -m flask run --host 127.0.0.1 --port 5000
+sudo systemctl start constructionapp-backend
 ```
+
+Do not run `flask run` manually while the systemd service is enabled: a manually started process
+holds port 5000 and fights with systemd's auto-restart supervision, causing the service to
+crash-loop. Always stop the service first, or just use `systemctl restart` from the preferred path
+above.
 
 Quick health check only:
 
@@ -168,18 +180,12 @@ cd /home/ubuntu/projects/constructionapp/frontend
 
 ### 3) Sync deploy files
 
-Primary deploy sync:
-
 ```bash
 cd /home/ubuntu/projects/constructionapp/frontend
-sudo rsync -av --delete build/web/ /var/www/kaniskahomes/
+rsync -av --delete build/web/ /var/www/kaniskahomes/
 ```
 
-Equivalent sync command (same source and target):
-
-```bash
-sudo rsync -av --delete build/web/ /var/www/kaniskahomes/
-```
+`/var/www/kaniskahomes/` is owned by the deploy user, so `sudo` is not required for this step.
 
 ### 4) Verify deployed frontend
 
@@ -207,7 +213,7 @@ cd /home/ubuntu/projects/constructionapp/frontend
 /home/ubuntu/flutter/bin/flutter analyze
 /home/ubuntu/flutter/bin/flutter pub get
 /home/ubuntu/flutter/bin/flutter build web --release
-sudo rsync -av --delete build/web/ /var/www/kaniskahomes/
+rsync -av --delete build/web/ /var/www/kaniskahomes/
 
 # optional frontend health check
 curl -sk -L -o /dev/null -w "site:%{http_code}\n" http://127.0.0.1/

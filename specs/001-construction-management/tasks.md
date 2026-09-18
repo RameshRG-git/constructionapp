@@ -172,6 +172,29 @@
 
 ---
 
+## Phase 10: Relational Integrity, Half-Day Workloads, and Misc Expense (Delivered)
+
+**Purpose**: Make payroll matching resilient to renames, support partial-day workloads, and let
+admins log miscellaneous site expenses alongside budget allocations.
+
+- [x] T074 Add `team_member_id` to work assignments, sick leaves, employee advances, advance
+  recoveries, and payroll payments; backfill existing rows and require the field on new records in
+  backend/app/models/ and backend/app/api/.
+- [x] T075 Update payroll, sick-leave, and advance services to match by `team_member_id` instead of
+  employee name, keeping `employee_name` as a display snapshot in backend/app/services/.
+- [x] T076 Add half-day workload support (`work_day_fraction`) restricted to single-day workloads,
+  with proportional pay and hours in backend/app/models/work_assignment.py,
+  backend/app/api/workloads.py, and frontend/lib/features/workloads/workloads_screen.dart.
+- [x] T077 Add `entry_type` (`allocation`/`expense`) to budget records and fold miscellaneous
+  expenses into total_expense and remaining_budget in backend/app/models/budget_record.py and
+  backend/app/api/budgets.py.
+- [x] T078 Add the "Add Expense" action and Misc Expenses summary chip in
+  frontend/lib/features/budgets/budgets_screen.dart.
+- [x] T079 Smoke test team-member rename resilience, half-day payroll math, and misc-expense
+  calculations end to end.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
