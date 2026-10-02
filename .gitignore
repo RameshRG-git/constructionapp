@@ -12,6 +12,7 @@ dist/
 __pycache__/
 *.pyc
 backend/.venv/
+backend/instance/
 frontend/.dart_tool/
 frontend/build/
 frontend/.flutter-plugins

@@ -1,10 +1,15 @@
+import os
+import secrets
+
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .api.auth import auth_bp
 from .api.budgets import budgets_bp
 from .api.errors import register_error_handlers
 from .api.inventory import inventory_bp
 from .api.payroll import payroll_bp
+from .api.session_guard import register_session_guard
 from .api.site_summary import site_summary_bp
 from .api.sites import sites_bp
 from .api.team_members import team_members_bp
@@ -20,9 +25,27 @@ from .extensions.logging import configure_logging
 from .services.tenancy import ensure_default_tenant, get_request_tenant_name
 
 
+def _load_secret_key(app):
+    if app.config.get("SECRET_KEY"):
+        return
+    key_path = os.path.join(app.instance_path, "secret_key")
+    os.makedirs(app.instance_path, exist_ok=True)
+    try:
+        fd = os.open(key_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w") as handle:
+            handle.write(secrets.token_hex(32))
+    except FileExistsError:
+        pass
+    with open(key_path, encoding="utf-8") as handle:
+        app.config["SECRET_KEY"] = handle.read().strip()
+
+
 def create_app(config_object=DevelopmentConfig):
     app = Flask(__name__)
     app.config.from_object(config_object)
+    _load_secret_key(app)
+    # Backend only listens on 127.0.0.1 behind nginx, so one proxy hop is trusted.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
     configure_logging(app)
     init_extensions(app)
@@ -31,6 +54,8 @@ def create_app(config_object=DevelopmentConfig):
     @app.before_request
     def bind_tenant_context():
         get_request_tenant_name()
+
+    register_session_guard(app)
 
     app.register_blueprint(sites_bp, url_prefix="/api/v1/sites")
     app.register_blueprint(site_summary_bp, url_prefix="/api/v1")

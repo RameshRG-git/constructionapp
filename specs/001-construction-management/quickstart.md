@@ -55,7 +55,18 @@ flutter test
 
 ## Authentication and Access
 - Users sign in at `/login` with username or email plus password.
-- Sessions are tracked with a signed server-side cookie; set a strong `SECRET_KEY` outside local dev.
+- Sessions are server-side records referenced by a signed `HttpOnly` cookie. They end after
+  `SESSION_IDLE_TIMEOUT_MINUTES` of inactivity (default `15`) or `SESSION_ABSOLUTE_TIMEOUT_HOURS`
+  (default `12`); the UI warns one minute before an idle sign-out. Activity is synchronized across
+  open tabs, and an active browser periodically calls the session endpoint to keep the server-side
+  idle timer current.
+- Logout revokes the current session. Changing a password revokes the user's other sessions while
+  keeping the current session active; deactivating the user revokes every session.
+- `SESSION_IDLE_TIMEOUT_MINUTES` and `SESSION_ABSOLUTE_TIMEOUT_HOURS` can be set in the backend
+  environment to change the defaults. `SESSION_COOKIE_SECURE` defaults to `true`; set it to `false`
+  only for local plain-HTTP development.
+- `SECRET_KEY` signs the cookie. If unset, the backend generates one at `backend/instance/secret_key`
+  (mode `600`, git-ignored) on first start; deleting it signs everyone out.
 - Tenant Admin is hidden from navigation and blocked on direct navigation unless the signed-in user
   holds the `tenant_admin` access role.
 - Manage users and user-to-tenant mappings from the Tenant Admin screen.
@@ -103,6 +114,10 @@ Change the bootstrap password immediately after the first sign-in.
 - Verify repeating a payroll request does not create a second advance recovery.
 - Rename a team member and verify their prior workloads, sick leave, and payroll history remain
   intact (matched by ID, not by the now-changed name).
+- Export a selected payroll week and verify the CSV includes all employees, the expected payroll
+  columns, site/week context, and totals even when the screen is filtered.
+- Verify the idle warning appears in the final minute, activity in another tab resets the countdown,
+  and an expired session returns to login with an explanation.
 - Sign out and confirm protected routes redirect to login.
 
 ## CI/CD

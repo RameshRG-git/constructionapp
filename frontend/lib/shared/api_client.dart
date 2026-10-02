@@ -9,6 +9,12 @@ class ApiClient {
   final http.Client _client;
   String _tenantName = 'kaniskahomes';
 
+  /// Called with the server error code on any 401, so an expired/revoked session can be ended.
+  void Function(String errorCode)? onUnauthorized;
+
+  /// Called after any successful response; each authenticated call extends the server session.
+  void Function()? onServerActivity;
+
   String get tenantName => _tenantName;
 
   void setTenantName(String tenantName) {
@@ -72,9 +78,13 @@ class ApiClient {
   }
 
   Map<String, dynamic> _decodeJsonMap(http.Response response) {
+    if (response.statusCode == 401) {
+      onUnauthorized?.call(_errorCode(response.body));
+    }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw ApiException(response.statusCode, response.body);
     }
+    onServerActivity?.call();
 
     if (response.body.trim().isEmpty) {
       return <String, dynamic>{};
@@ -82,6 +92,18 @@ class ApiClient {
 
     final decoded = jsonDecode(response.body);
     return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+  }
+
+  String _errorCode(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic> && decoded['error'] is Map<String, dynamic>) {
+        return (decoded['error'] as Map<String, dynamic>)['code']?.toString() ?? 'unauthorized';
+      }
+    } catch (_) {
+      // Non-JSON error body; fall through to the generic code.
+    }
+    return 'unauthorized';
   }
 }
 

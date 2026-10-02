@@ -4,7 +4,7 @@
 
 **Created**: 2026-05-18
 
-**Last Updated**: 2026-09-18
+**Last Updated**: 2026-10-02
 
 **Status**: Implemented and Iterating
 
@@ -187,6 +187,20 @@ and confirm Tenant Admin is visible only for a `tenant_admin` user.
 - **FR-035**: The system MUST allow budget records to be logged as either a budget allocation or a
   miscellaneous expense, and MUST include miscellaneous expenses in total expense and remaining
   budget calculations.
+- **FR-036**: The system MUST end a session after a configurable idle period (default 15 minutes) and
+  after a configurable absolute lifetime (default 12 hours), warn the user one minute before an idle
+  sign-out, and explain the reason on the login screen. Browser activity in any open tab MUST keep
+  the user's idle countdown in sync across tabs.
+- **FR-037**: The system MUST require a valid server-side session for every API endpoint except health
+  check, login, and logout. Session tokens MUST be unpredictable and stored server-side only as
+  hashes. Logout MUST revoke the current session; a password change MUST revoke the user's other
+  sessions; deactivation MUST revoke all of the user's sessions.
+- **FR-038**: The system MUST reject requests for a tenant the user is not mapped to (unless they hold
+  `tenant_admin`) and restrict user/tenant administration endpoints to `tenant_admin` users.
+- **FR-039**: The system MUST let users export the selected site's selected Sunday-to-Saturday payroll
+  week as a CSV containing employee name, title, days worked, amount due, amount paid, and payment
+  status, plus site/week context and weekly totals. Export MUST include all employees for the week,
+  regardless of on-screen search or status filters.
 
 ### Key Entities *(include if feature involves data)*
 

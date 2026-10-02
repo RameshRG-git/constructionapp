@@ -195,6 +195,22 @@ admins log miscellaneous site expenses alongside budget allocations.
 
 ---
 
+## Phase 11: Session Hardening and Payroll Export (Delivered)
+
+**Purpose**: Enforce revocable server-side sessions with idle and absolute expiry, and provide a
+spreadsheet-friendly export of weekly payroll.
+
+- [x] T080 Add hashed server-side sessions, request authorization, session revocation, and secure
+  cookie configuration in the backend.
+- [x] T081 Add cross-tab idle tracking, warning/countdown, active-session keepalive, and expiry
+  feedback in the Flutter client.
+- [x] T082 Replace payroll printing with a CSV download containing employee detail, payment status,
+  site/week context, and totals; protect spreadsheet output from formula injection.
+- [x] T083 Document session behavior, authorization rules, and payroll CSV format in the feature
+  specification, API contract, data model, and quickstart.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

@@ -1,9 +1,10 @@
-from flask import Blueprint, request
+from flask import Blueprint, g, request
 
 from .response import created, ok
 from ..extensions.database import db
 from ..models.app_user import AppUser
 from ..models.user_tenant import UserTenant
+from ..services.session_service import SessionService
 from ..services.user_service import TENANT_ACCESS_ROLES, UserService
 
 
@@ -70,8 +71,13 @@ def update_user(user_id):
         user.email = email
     if "password" in payload and payload["password"]:
         user.password_hash = UserService.hash_password(payload["password"])
+        # Keep the caller's own session if they changed their own password.
+        keep = g.user_session.id if g.current_user.id == user.id else None
+        SessionService.revoke_all_for_user(user.id, keep_session_id=keep)
     if "is_active" in payload:
         user.is_active = bool(payload["is_active"])
+        if not user.is_active:
+            SessionService.revoke_all_for_user(user.id)
 
     db.session.commit()
     return ok(user.to_dict(include_tenants=True))

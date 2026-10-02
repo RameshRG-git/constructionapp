@@ -10,6 +10,7 @@ from .team_member import TeamMember
 from .team_role_rate import TeamRoleRate
 from .tenant import Tenant
 from .user_tenant import UserTenant
+from .user_session import UserSession
 from .work_assignment import WorkAssignment
 
 __all__ = [
@@ -26,5 +27,6 @@ __all__ = [
     "TeamRoleRate",
     "Tenant",
     "UserTenant",
+    "UserSession",
     "WorkAssignment",
 ]

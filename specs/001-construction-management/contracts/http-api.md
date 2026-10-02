@@ -34,6 +34,25 @@ Session payload returned by login and session:
 - `access_roles` - distinct access roles across those mappings
 - `default_tenant` - tenant slug the client should activate after sign-in
 - `is_tenant_admin` - `true` when the user holds the `tenant_admin` role
+- `session.idle_timeout_seconds` - server idle timeout the client uses for its warning countdown
+- `session.absolute_expires_at` - UTC time after which the session ends regardless of activity
+
+Session rules:
+- Every `/api/v1` endpoint except `/health`, `/auth/login`, and `/auth/logout` requires a live session;
+  otherwise it returns `401` with code `unauthorized`, or `session_expired` after idle/absolute expiry.
+- Login issues a fresh unpredictable token; only its SHA-256 hash is stored in the server-side
+  `user_sessions` table. The signed cookie is named `constructionapp_session`.
+- Authenticated requests refresh the idle activity timestamp, with database writes throttled to once
+  per minute (so expiry may be enforced up to 60 seconds early); `GET /auth/session` doubles as a
+  keepalive. The browser tracks activity across tabs, warns in the final minute, and periodically
+  checks in while the user is active.
+- Logout revokes the current session. A password change revokes the user's other sessions while
+  keeping the caller's session active; deactivation revokes all of the user's sessions.
+- Requests for an unmapped tenant return `403 tenant_forbidden` (tenant admins are exempt).
+- `/users`, `/user-tenants`, and non-GET `/tenants` require `tenant_admin` (`403 forbidden`).
+- The session cookie is `HttpOnly` and `SameSite=Lax` (`Secure` by default; configurable for local
+  plain-HTTP development). API responses send `Cache-Control: no-store` and `X-Content-Type-Options:
+  nosniff`.
 
 ### Sites
 - `GET /sites` - list sites with summary fields
@@ -137,6 +156,11 @@ Payroll rules: sick-leave dates are excluded per day from overlapping workload p
 due advances are recovered FIFO by due date from net weekly earnings; recovery is capped at that
 week's net earnings and the remaining balance carries forward. Recovery is committed only when a
 payment is first recorded for that employee/week.
+
+The Payments screen exports the selected site's complete selected payroll week as CSV, ignoring
+on-screen search and status filters. The file includes site and week context, employee name, title,
+days worked, amount due (`net_payable_amount`), amount paid, payment status, and a totals row. CSV
+text is escaped for spreadsheet compatibility and prefixed with a UTF-8 BOM.
 
 Payroll payments, sick leaves, and advances are identified by `team_member_id` (required in request
 payloads), not by name; the server resolves and snapshots the member's current display name.

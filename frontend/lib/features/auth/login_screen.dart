@@ -37,6 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _isSubmitting = true;
       _error = null;
     });
+    AuthScope.of(context).clearSignOutReason();
 
     try {
       await AuthScope.of(context).signIn(identifier, password);
@@ -108,6 +109,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         'Access your construction workspace.',
                         style: theme.textTheme.bodyLarge,
                       ),
+                      if (auth.signOutReason != null) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF7ED),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFFED7AA)),
+                          ),
+                          child: Text(
+                            auth.signOutReason!,
+                            style: const TextStyle(color: Color(0xFF9A3412), fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 22),
                       TextField(
                         controller: _identifierController,

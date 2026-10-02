@@ -101,6 +101,16 @@
 - Security: password is stored only as a salted hash and is never returned by the API.
 - Relationships: has many tenant mappings, removed together with the user.
 
+### User Session
+- Represents one signed-in browser session, so it can be expired and revoked server-side.
+- Fields: id, token_hash, user_id, created_at, last_seen_at, absolute_expires_at, revoked_at,
+  ip_address, user_agent.
+- The cookie carries a random token; only its SHA-256 hash is stored.
+- A session is invalid once revoked, idle past `SESSION_IDLE_TIMEOUT_MINUTES`, or past
+  `absolute_expires_at`. Logout revokes the current session; password change revokes the user's other
+  sessions while preserving the caller's session; deactivation revokes all sessions; deleting the
+  user cascades.
+
 ### User Tenant Mapping
 - Represents which tenants a user may access and with what role.
 - Fields: id, user_id, tenant_id, tenant_slug, access_role, is_active, created_at, updated_at.

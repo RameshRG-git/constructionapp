@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../shared/app_shell.dart';
 import '../shared/auth_scope.dart';
+import '../shared/idle_timeout_warning.dart';
 import '../shared/workspace_scope.dart';
 import 'router.dart';
 
@@ -131,7 +132,17 @@ class _ConstructionAppState extends State<ConstructionApp> {
           controller: AuthController.instance,
           child: WorkspaceScope(
             controller: WorkspaceController.instance,
-            child: child ?? const SizedBox.shrink(),
+            child: Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: (_) => AuthController.instance.recordUserActivity(),
+              onPointerSignal: (_) => AuthController.instance.recordUserActivity(),
+              child: Stack(
+                children: [
+                  child ?? const SizedBox.shrink(),
+                  const IdleTimeoutWarning(),
+                ],
+              ),
+            ),
           ),
         );
       },

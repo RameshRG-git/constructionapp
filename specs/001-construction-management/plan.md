@@ -2,7 +2,7 @@
 
 **Branch**: `001-construction-management` | **Date**: 2026-05-18 | **Spec**: [spec.md](spec.md)
 
-**Last Updated**: 2026-08-31
+**Last Updated**: 2026-10-02
 
 **Input**: Feature specification from `/specs/001-construction-management/spec.md`
 
@@ -15,7 +15,8 @@ frontend. The delivered scope now includes authenticated sign-in with role-aware
 data isolation, site tracking, global and site materials views, workload period tracking
 (day/date-range), budget monitoring that treats workload payments and materials value as expenses,
 team management, role/day-rate catalog management, and weekly payroll with sick-leave exclusion
-and employee advance recovery. Use PostgreSQL for persistence, PyTest for
+and employee advance recovery, full-week CSV payroll export, and server-enforced sessions with
+idle/absolute expiry and tenant authorization. Use PostgreSQL for persistence, PyTest for
 backend verification, and Flutter analyze/test for frontend quality checks.
 
 ## Technical Context

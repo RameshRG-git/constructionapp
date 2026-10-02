@@ -1,7 +1,8 @@
+import 'dart:convert';
+import 'dart:js_interop';
+
 import 'package:flutter/material.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
+import 'package:web/web.dart' as web;
 
 import '../../shared/api_registry.dart';
 import '../../shared/workspace_scope.dart';
@@ -147,142 +148,84 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     _loadPayroll();
   }
 
-  /// Builds a printable weekly payroll register (PDF) for backup/record-keeping.
-  Future<void> _printPayroll() async {
+  /// Downloads the full week's payroll (ignoring on-screen filters) as CSV for backup.
+  void _exportPayroll() {
     if (_siteId == null) {
       return;
     }
     final siteName = WorkspaceScope.of(context).selectedSiteName;
-    final items = List<Map<String, dynamic>>.unmodifiable(_items);
-    if (items.isEmpty) {
+    if (_items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nothing to print for this week.')),
+        const SnackBar(content: Text('Nothing to export for this week.')),
       );
       return;
     }
 
-    final summaryMap = _summary.cast<String, dynamic>();
-    final generatedOn = DateTime.now();
-
-    final doc = pw.Document();
-    final headerStyle = pw.TextStyle(fontSize: 10, color: PdfColors.grey700);
-    final tableHeaderStyle = pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold);
-    final cellStyle = const pw.TextStyle(fontSize: 9);
-
-    doc.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
-        margin: const pw.EdgeInsets.all(28),
-        header: (context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('Weekly Payroll Register', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 4),
-            pw.Text('Site: $siteName', style: headerStyle),
-            pw.Text('Payroll week: ${_weekLabel()} (Sunday - Saturday)', style: headerStyle),
-            pw.Text(
-              'Generated on: ${generatedOn.year}-${generatedOn.month.toString().padLeft(2, '0')}-${generatedOn.day.toString().padLeft(2, '0')} '
-              '${generatedOn.hour.toString().padLeft(2, '0')}:${generatedOn.minute.toString().padLeft(2, '0')}',
-              style: headerStyle,
-            ),
-            pw.SizedBox(height: 12),
-          ],
-        ),
-        footer: (context) => pw.Container(
-          alignment: pw.Alignment.centerRight,
-          margin: const pw.EdgeInsets.only(top: 8),
-          child: pw.Text('Page ${context.pageNumber} of ${context.pagesCount}', style: headerStyle),
-        ),
-        build: (context) => [
-          pw.TableHelper.fromTextArray(
-            headerStyle: tableHeaderStyle,
-            cellStyle: cellStyle,
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
-            cellAlignments: const {
-              0: pw.Alignment.centerLeft,
-              1: pw.Alignment.centerLeft,
-              2: pw.Alignment.center,
-              3: pw.Alignment.center,
-              4: pw.Alignment.centerRight,
-              5: pw.Alignment.centerRight,
-              6: pw.Alignment.centerRight,
-              7: pw.Alignment.centerRight,
-              8: pw.Alignment.centerRight,
-              9: pw.Alignment.center,
-              10: pw.Alignment.centerLeft,
-            },
-            headers: const [
-              'Employee',
-              'Role',
-              'Days',
-              'Sick Days',
-              'Gross Earned',
-              'Advance Recovery',
-              'Net Payable',
-              'Paid',
-              'Outstanding',
-              'Status',
-              'Paid On / Method',
-            ],
-            data: [
-              for (final row in items)
-                [
-                  row['employee_name']?.toString() ?? '-',
-                  row['role_title']?.toString() ?? '-',
-                  '${row['days_worked'] ?? 0}',
-                  '${row['sick_days'] ?? 0}',
-                  _money(row['earned_amount'] as num?),
-                  _money(row['advance_recovery_amount'] as num?),
-                  _money(row['net_payable_amount'] as num?),
-                  _money(row['paid_amount'] as num?),
-                  _money(row['outstanding_amount'] as num?),
-                  (row['status']?.toString() ?? 'pending').toUpperCase(),
-                  [
-                    if (row['paid_on'] != null) row['paid_on'].toString(),
-                    if (row['payment_method'] != null) row['payment_method'].toString(),
-                  ].join(' / '),
-                ],
-            ],
-          ),
-          pw.SizedBox(height: 16),
-          pw.Container(
-            padding: const pw.EdgeInsets.all(10),
-            decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(6)),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text('Summary', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                pw.SizedBox(height: 6),
-                pw.Text('Employees: ${summaryMap['employee_count'] ?? items.length}', style: cellStyle),
-                pw.Text('Total gross earned: ${_money(summaryMap['total_earned'] as num?)}', style: cellStyle),
-                pw.Text('Total advance recovered: ${_money(summaryMap['total_advance_recovered'] as num?)}', style: cellStyle),
-                pw.Text('Total net payable: ${_money(summaryMap['total_net_payable'] as num?)}', style: cellStyle),
-                pw.Text('Total paid: ${_money(summaryMap['total_paid'] as num?)}', style: cellStyle),
-                pw.Text('Total outstanding: ${_money(summaryMap['total_outstanding'] as num?)}', style: cellStyle),
-              ],
-            ),
-          ),
+    final rows = <List<String>>[
+      ['SITE WORKSPACE', _csvText(siteName.toUpperCase())],
+      ['PAYROLL WEEK', '${_toIsoDate(_weekStart)} to ${_toIsoDate(_weekEnd)} (Sunday - Saturday)'],
+      [],
+      ['Employee Name', 'Title', 'Days Worked', 'Amount Due', 'Amount Paid', 'Payment Status'],
+      for (final row in _items)
+        [
+          _csvText(row['employee_name']?.toString() ?? '-'),
+          _csvText(row['role_title']?.toString() ?? '-'),
+          _days(row['days_worked'] as num?),
+          _money(row['net_payable_amount'] as num?),
+          _money(row['paid_amount'] as num?),
+          _statusLabel(row['status']?.toString()),
         ],
-      ),
-    );
+      [],
+      [
+        'TOTAL',
+        '',
+        _days(_summary['total_days'] as num?),
+        _money(_summary['total_net_payable'] as num?),
+        _money(_summary['total_paid'] as num?),
+        '',
+      ],
+    ];
+    final csv = rows.map((cells) => cells.map(_csvCell).join(',')).join('\r\n');
+    final safeSite = siteName.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_');
 
     try {
-      final filename = 'payroll_${siteName.replaceAll(' ', '_')}_${_toIsoDate(_weekStart)}.pdf';
-      final printed = await Printing.layoutPdf(
-        onLayout: (format) async => doc.save(),
-        name: filename,
-      );
-      if (!printed) {
-        await Printing.sharePdf(bytes: await doc.save(), filename: filename);
-      }
+      _downloadCsv(csv, 'payroll_${safeSite}_${_toIsoDate(_weekStart)}.csv');
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to open print dialog: $error')),
+        SnackBar(content: Text('Export failed: $error')),
       );
     }
+  }
+
+  String _days(num? value) {
+    final days = (value ?? 0).toDouble();
+    return days == days.roundToDouble() ? days.toInt().toString() : days.toStringAsFixed(1);
+  }
+
+  String _statusLabel(String? status) {
+    final value = status ?? 'pending';
+    return value.isEmpty ? '' : '${value[0].toUpperCase()}${value.substring(1)}';
+  }
+
+  // Prevents user-entered text from being run as a spreadsheet formula when opened in Excel.
+  String _csvText(String value) =>
+      value.isNotEmpty && '=+-@\t\r'.contains(value[0]) ? "'$value" : value;
+
+  String _csvCell(String value) =>
+      value.contains(RegExp(r'[",\r\n]')) ? '"${value.replaceAll('"', '""')}"' : value;
+
+  void _downloadCsv(String csv, String filename) {
+    // BOM lets Excel detect UTF-8 so non-ASCII names render correctly.
+    final bytes = utf8.encode('\uFEFF$csv');
+    final blob = web.Blob([bytes.toJS].toJS, web.BlobPropertyBag(type: 'text/csv;charset=utf-8'));
+    final url = web.URL.createObjectURL(blob);
+    final anchor = web.HTMLAnchorElement()
+      ..href = url
+      ..download = filename;
+    web.document.body!.append(anchor);
+    anchor.click();
+    anchor.remove();
+    web.URL.revokeObjectURL(url);
   }
 
   Future<void> _pickWeek() async {
@@ -711,9 +654,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           children: [
             Expanded(child: Text('Payments', style: theme.textTheme.headlineMedium)),
             OutlinedButton.icon(
-              onPressed: _siteId == null ? null : _printPayroll,
-              icon: const Icon(Icons.print_rounded),
-              label: const Text('Print'),
+              onPressed: _siteId == null ? null : _exportPayroll,
+              icon: const Icon(Icons.download_rounded),
+              label: const Text('Export'),
             ),
             const SizedBox(width: 8),
             OutlinedButton.icon(
